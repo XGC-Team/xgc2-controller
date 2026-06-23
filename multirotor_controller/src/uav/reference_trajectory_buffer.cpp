@@ -17,6 +17,14 @@ Eigen::Vector3d toVector(const geometry_msgs::Vector3 &vector) {
   return Eigen::Vector3d(vector.x, vector.y, vector.z);
 }
 
+double wrapAngle(double value) {
+  return std::atan2(std::sin(value), std::cos(value));
+}
+
+double unwrapAngleNear(double value, double reference) {
+  return reference + wrapAngle(value - reference);
+}
+
 Eigen::Vector3d finiteDifference(const std::vector<Eigen::Vector3d> &values,
                                  const std::vector<double> &times,
                                  std::size_t index) {
@@ -83,6 +91,9 @@ bool ReferenceTrajectoryBuffer::updateFlat(
     point.jerk = toVector(input.jerk);
     point.snap = toVector(input.snap);
     point.yaw = input.yaw;
+    if (!points.empty()) {
+      point.yaw = unwrapAngleNear(point.yaw, points.back().yaw);
+    }
     point.yaw_rate = input.yaw_rate;
     point.yaw_accel = input.yaw_accel;
     if (!finite(point)) {
@@ -132,6 +143,12 @@ bool ReferenceTrajectoryBuffer::updateBspline(
 
   const int sample_count =
       std::max(2, static_cast<int>(std::ceil((u_max - u_min) / sample_dt)) + 1);
+  std::vector<double> yaw_control_points = msg.yaw_control_points;
+  for (size_t i = 1; i < yaw_control_points.size(); ++i) {
+    yaw_control_points[i] =
+        unwrapAngleNear(yaw_control_points[i], yaw_control_points[i - 1]);
+  }
+
   std::vector<UavReferencePoint> points(static_cast<size_t>(sample_count));
   for (int i = 0; i < sample_count; ++i) {
     const double t =
@@ -143,8 +160,8 @@ bool ReferenceTrajectoryBuffer::updateBspline(
                               point.position)) {
       return false;
     }
-    if (!msg.yaw_control_points.empty()) {
-      (void)evaluateBspline(msg.knots, msg.yaw_control_points, degree, u,
+    if (!yaw_control_points.empty()) {
+      (void)evaluateBspline(msg.knots, yaw_control_points, degree, u,
                             point.yaw);
     }
   }
@@ -155,7 +172,7 @@ bool ReferenceTrajectoryBuffer::updateBspline(
     const double dt =
         std::max(1e-6, points[next].t_from_start - points[prev].t_from_start);
     points[i].velocity = (points[next].position - points[prev].position) / dt;
-    points[i].yaw_rate = (points[next].yaw - points[prev].yaw) / dt;
+    points[i].yaw_rate = wrapAngle(points[next].yaw - points[prev].yaw) / dt;
   }
   for (size_t i = 0; i < points.size(); ++i) {
     const size_t prev = i == 0 ? i : i - 1;
@@ -363,7 +380,7 @@ bool ReferenceTrajectoryBuffer::interpolate(
       (1.0 - alpha) * prev->acceleration + alpha * next->acceleration;
   sample.jerk = (1.0 - alpha) * prev->jerk + alpha * next->jerk;
   sample.snap = (1.0 - alpha) * prev->snap + alpha * next->snap;
-  sample.yaw = (1.0 - alpha) * prev->yaw + alpha * next->yaw;
+  sample.yaw = prev->yaw + alpha * wrapAngle(next->yaw - prev->yaw);
   sample.yaw_rate = (1.0 - alpha) * prev->yaw_rate + alpha * next->yaw_rate;
   sample.yaw_accel =
       (1.0 - alpha) * prev->yaw_accel + alpha * next->yaw_accel;

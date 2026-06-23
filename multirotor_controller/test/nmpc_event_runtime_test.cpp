@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 namespace multirotor_controller {
 namespace {
 
@@ -59,6 +61,37 @@ TEST(ReferenceTrajectoryBuffer, FlatTrajectorySamplesAndBuildsHorizon) {
   EXPECT_EQ(horizon.size(), 22U);
   EXPECT_TRUE(horizon.front().x.array().isFinite().all());
   EXPECT_TRUE(horizon.front().u.array().isFinite().all());
+}
+
+TEST(ReferenceTrajectoryBuffer, FlatTrajectoryUnwrapsYawAcrossPiBoundary) {
+  reference_trajectory::UavFlatTrajectory msg;
+  msg.valid = true;
+  msg.sequence = 9;
+  msg.start_time = ros::Time(30.0);
+  for (int i = 0; i < 2; ++i) {
+    reference_trajectory::UavFlatTrajectoryPoint point;
+    point.t_from_start = static_cast<double>(i);
+    point.position.z = 1.0;
+    point.yaw = i == 0 ? 3.13 : -3.13;
+    msg.points.push_back(point);
+  }
+
+  ReferenceTrajectoryBuffer buffer;
+  ASSERT_TRUE(buffer.updateFlat(msg, ros::Time(30.0)));
+
+  UavReferencePoint sample;
+  ASSERT_TRUE(buffer.sample(ros::Time(30.5), 1.0, sample));
+  EXPECT_NEAR(sample.yaw, M_PI, 2e-3);
+
+  std::vector<reference_trajectory::UavReferenceSample> horizon;
+  ASSERT_TRUE(buffer.sampleHorizon(ros::Time(30.0), 0.1, 10, 1.0, 9.8066,
+                                   horizon));
+  for (const auto &reference : horizon) {
+    EXPECT_TRUE(reference.x.array().isFinite().all());
+    EXPECT_TRUE(reference.u.array().isFinite().all());
+    EXPECT_LT(reference.x.segment<3>(10).norm(), 1.0);
+    EXPECT_LT(reference.u.tail<3>().norm(), 1.0);
+  }
 }
 
 TEST(ReferenceTrajectoryBuffer, BsplineTrajectorySamplesFiniteValues) {

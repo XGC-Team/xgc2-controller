@@ -64,7 +64,7 @@ for file in "${required_files[@]}"; do
 done
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
-grep -q "version: 1.0.3-1" .xgc2/product.yml
+grep -q "version: 1.0.4-1" .xgc2/product.yml
 grep -q "<name>multirotor_controller</name>" multirotor_controller/package.xml
 grep -q "<name>reference_trajectory</name>" reference_trajectory/package.xml
 grep -q "run_tests_reference_trajectory run_tests_multirotor_controller" .github/workflows/build-debs.yml

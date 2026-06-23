@@ -41,6 +41,10 @@ def interpolate_angle(start: float, end: float, ratio: float) -> float:
     return wrap_angle(start + ratio * delta)
 
 
+def unwrap_angle_near(value: float, reference: float) -> float:
+    return reference + wrap_angle(value - reference)
+
+
 def smoothstep(value: float) -> float:
     value = max(0.0, min(1.0, value))
     return value * value * (3.0 - 2.0 * value)
@@ -240,6 +244,19 @@ def make_open_uniform_knots(control_count: int, degree: int, duration: float):
     return knots
 
 
+def finite_difference(values, times, index):
+    if len(values) < 2:
+        return 0.0
+    if index <= 0:
+        dt = max(1e-6, times[1] - times[0])
+        return (values[1] - values[0]) / dt
+    if index + 1 >= len(values):
+        dt = max(1e-6, times[index] - times[index - 1])
+        return (values[index] - values[index - 1]) / dt
+    dt = max(1e-6, times[index + 1] - times[index - 1])
+    return (values[index + 1] - values[index - 1]) / dt
+
+
 def main():
     rospy.init_node("uav_reference_trajectory_publisher")
     curve = rospy.get_param("~curve", "lemniscate")
@@ -363,9 +380,16 @@ def main():
         bspline.valid = True
         bspline.yaw_dt = sample_dt
 
+        points = []
+        times = []
+        yaws = []
+        previous_yaw = None
         for i in range(count):
             t = i * sample_dt
             p, v, a, jerk, snap, yaw = sample_curve(curve, elapsed + t, curve_params)
+            if previous_yaw is not None:
+                yaw = unwrap_angle_near(yaw, previous_yaw)
+            previous_yaw = yaw
             point = UavFlatTrajectoryPoint()
             point.t_from_start = t
             point.position = p
@@ -374,9 +398,20 @@ def main():
             point.jerk = jerk
             point.snap = snap
             point.yaw = yaw
+            points.append(point)
+            times.append(t)
+            yaws.append(yaw)
+
+        yaw_rates = [finite_difference(yaws, times, i) for i in range(len(points))]
+        yaw_accels = [
+            finite_difference(yaw_rates, times, i) for i in range(len(points))
+        ]
+        for point, yaw_rate, yaw_accel in zip(points, yaw_rates, yaw_accels):
+            point.yaw_rate = finite(yaw_rate)
+            point.yaw_accel = finite(yaw_accel)
             flat.points.append(point)
-            bspline.position_control_points.append(p)
-            bspline.yaw_control_points.append(yaw)
+            bspline.position_control_points.append(point.position)
+            bspline.yaw_control_points.append(point.yaw)
 
         bspline.knots = make_open_uniform_knots(
             len(bspline.position_control_points), degree, horizon
