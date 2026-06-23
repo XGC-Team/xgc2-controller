@@ -19,6 +19,8 @@ class CurveParams:
     height: float
     line_speed: float
     helix_scl: float
+    z_amplitude: float
+    z_omega_multiplier: float
     entry_duration: float
     start_x: float
     start_y: float
@@ -103,6 +105,8 @@ def sample_curve(
     height = params.height
     line_speed = params.line_speed
     helix_scl = params.helix_scl
+    z_amplitude = max(0.0, finite(params.z_amplitude))
+    z_omega = omega * finite(params.z_omega_multiplier)
 
     if name == "line":
         p.x = line_speed * t
@@ -124,7 +128,10 @@ def sample_curve(
                 params.center_y, radius * omega, 0.0)
             p.x, v.x, a.x, jerk.x, snap.x = x
             p.y, v.y, a.y, jerk.y, snap.y = y
-            p.z = height
+            z = quintic_boundary(
+                t, entry_duration, height, 0.0, 0.0,
+                height, z_amplitude * z_omega, 0.0)
+            p.z, v.z, a.z, jerk.z, snap.z = z
             if abs(v.x) > 1e-6 or abs(v.y) > 1e-6:
                 tangent_yaw = math.atan2(v.y, v.x)
             else:
@@ -136,17 +143,22 @@ def sample_curve(
             )
         else:
             wt = omega * (t - entry_duration)
+            zt = z_omega * (t - entry_duration)
             p.x = params.center_x + radius * math.cos(wt)
             p.y = params.center_y + radius * math.sin(wt)
-            p.z = height
+            p.z = height + z_amplitude * math.sin(zt)
             v.x = -radius * omega * math.sin(wt)
             v.y = radius * omega * math.cos(wt)
+            v.z = z_amplitude * z_omega * math.cos(zt)
             a.x = -radius * omega * omega * math.cos(wt)
             a.y = -radius * omega * omega * math.sin(wt)
+            a.z = -z_amplitude * z_omega * z_omega * math.sin(zt)
             jerk.x = radius * omega**3 * math.sin(wt)
             jerk.y = -radius * omega**3 * math.cos(wt)
+            jerk.z = -z_amplitude * z_omega**3 * math.cos(zt)
             snap.x = radius * omega**4 * math.cos(wt)
             snap.y = radius * omega**4 * math.sin(wt)
+            snap.z = z_amplitude * z_omega**4 * math.sin(zt)
         if t >= entry_duration and (abs(v.x) > 1e-6 or abs(v.y) > 1e-6):
             yaw = math.atan2(v.y, v.x)
     elif name == "circle":
@@ -279,6 +291,8 @@ def main():
         height=float(rospy.get_param("~height", 1.5)),
         line_speed=float(rospy.get_param("~line_speed", 0.3)),
         helix_scl=float(rospy.get_param("~helix_scl", 0.15)),
+        z_amplitude=float(rospy.get_param("~z_amplitude", 0.0)),
+        z_omega_multiplier=float(rospy.get_param("~z_omega_multiplier", 1.0)),
         entry_duration=float(rospy.get_param("~entry_duration", 5.0)),
         start_x=float(rospy.get_param("~start_x", 0.0)),
         start_y=float(rospy.get_param("~start_y", 0.0)),
