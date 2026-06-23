@@ -1,19 +1,19 @@
 #include "multirotor_controller/uav/reference_trajectory_buffer.h"
 
-#include "multirotor_controller/nmpc/nmpc_math_utils.h"
-
 #include <algorithm>
 #include <cmath>
+
+#include "multirotor_controller/nmpc/nmpc_math_utils.h"
 
 namespace multirotor_controller {
 
 namespace {
 
-Eigen::Vector3d toVector(const geometry_msgs::Point &point) {
+Eigen::Vector3d toVector(const geometry_msgs::Point& point) {
   return Eigen::Vector3d(point.x, point.y, point.z);
 }
 
-Eigen::Vector3d toVector(const geometry_msgs::Vector3 &vector) {
+Eigen::Vector3d toVector(const geometry_msgs::Vector3& vector) {
   return Eigen::Vector3d(vector.x, vector.y, vector.z);
 }
 
@@ -25,52 +25,76 @@ double unwrapAngleNear(double value, double reference) {
   return reference + wrapAngle(value - reference);
 }
 
-Eigen::Vector3d finiteDifference(const std::vector<Eigen::Vector3d> &values,
-                                 const std::vector<double> &times,
-                                 std::size_t index) {
-  if (values.size() < 2 || index >= values.size()) {
+Eigen::Vector3d unitVectorDerivative(const Eigen::Vector3d& value,
+                                     const Eigen::Vector3d& value_dot,
+                                     const Eigen::Vector3d& unit_value) {
+  const double norm = value.norm();
+  if (!std::isfinite(norm) || norm < 1e-9) {
     return Eigen::Vector3d::Zero();
   }
-  if (index == 0) {
-    const double dt = std::max(1e-6, times[1] - times[0]);
-    return (values[1] - values[0]) / dt;
-  }
-  if (index + 1 >= values.size()) {
-    const double dt = std::max(1e-6, times[index] - times[index - 1]);
-    return (values[index] - values[index - 1]) / dt;
-  }
-  const double dt = std::max(1e-6, times[index + 1] - times[index - 1]);
-  return (values[index + 1] - values[index - 1]) / dt;
+  return (Eigen::Matrix3d::Identity() - unit_value * unit_value.transpose()) *
+         value_dot / norm;
 }
 
-Eigen::Vector3d finiteDifferenceRotationBody(
-    const std::vector<Eigen::Matrix3d> &rotations,
-    const std::vector<double> &times, std::size_t index) {
-  if (rotations.size() < 2 || index >= rotations.size()) {
-    return Eigen::Vector3d::Zero();
+struct FlatKinematics {
+  Eigen::Matrix3d rotation{Eigen::Matrix3d::Identity()};
+  Eigen::Vector3d omega{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d thrust{Eigen::Vector3d::Zero()};
+};
+
+FlatKinematics flatKinematics(const UavReferencePoint& point, double gravity) {
+  FlatKinematics out;
+  out.thrust = point.acceleration + gravity * Eigen::Vector3d::UnitZ();
+  const Eigen::Vector3d b3 =
+      normalizeVector(out.thrust, Eigen::Vector3d::UnitZ());
+  const Eigen::Vector3d b3_dot =
+      unitVectorDerivative(out.thrust, point.jerk, b3);
+
+  const double yaw = point.yaw;
+  const double yaw_rate = point.yaw_rate;
+  const Eigen::Vector3d xc(std::cos(yaw), std::sin(yaw), 0.0);
+  const Eigen::Vector3d xc_dot(-std::sin(yaw) * yaw_rate,
+                               std::cos(yaw) * yaw_rate, 0.0);
+
+  Eigen::Vector3d y_raw = b3.cross(xc);
+  Eigen::Vector3d y_raw_dot = b3_dot.cross(xc) + b3.cross(xc_dot);
+  if (!std::isfinite(y_raw.norm()) || y_raw.norm() < 1e-8) {
+    const Eigen::Vector3d fallback =
+        std::abs(b3.dot(Eigen::Vector3d::UnitY())) > 0.95
+            ? Eigen::Vector3d::UnitX()
+            : Eigen::Vector3d::UnitY();
+    y_raw = b3.cross(fallback);
+    y_raw_dot.setZero();
   }
 
-  Eigen::Matrix3d r_dot = Eigen::Matrix3d::Zero();
-  if (index == 0) {
-    const double dt = std::max(1e-6, times[1] - times[0]);
-    r_dot = (rotations[1] - rotations[0]) / dt;
-  } else if (index + 1 >= rotations.size()) {
-    const double dt = std::max(1e-6, times[index] - times[index - 1]);
-    r_dot = (rotations[index] - rotations[index - 1]) / dt;
-  } else {
-    const double dt = std::max(1e-6, times[index + 1] - times[index - 1]);
-    r_dot = (rotations[index + 1] - rotations[index - 1]) / dt;
-  }
+  const Eigen::Vector3d yb = normalizeVector(y_raw, Eigen::Vector3d::UnitY());
+  const Eigen::Vector3d yb_dot = unitVectorDerivative(y_raw, y_raw_dot, yb);
+  const Eigen::Vector3d xb =
+      normalizeVector(yb.cross(b3), Eigen::Vector3d::UnitX());
+  const Eigen::Vector3d xb_dot = yb_dot.cross(b3) + yb.cross(b3_dot);
 
-  const Eigen::Matrix3d omega_hat = rotations[index].transpose() * r_dot;
-  return vee(0.5 * (omega_hat - omega_hat.transpose()));
+  out.rotation.col(0) = xb;
+  out.rotation.col(1) = yb;
+  out.rotation.col(2) = b3;
+  out.rotation = projectRotation(out.rotation);
+
+  Eigen::Matrix3d rotation_dot;
+  rotation_dot.col(0) = xb_dot;
+  rotation_dot.col(1) = yb_dot;
+  rotation_dot.col(2) = b3_dot;
+  const Eigen::Matrix3d omega_hat = out.rotation.transpose() * rotation_dot;
+  out.omega = vee(0.5 * (omega_hat - omega_hat.transpose()));
+  if (!out.omega.array().isFinite().all()) {
+    out.omega.setZero();
+  }
+  return out;
 }
 
-} // namespace
+}  // namespace
 
 bool ReferenceTrajectoryBuffer::updateFlat(
-    const reference_trajectory::UavFlatTrajectory &msg,
-    const ros::Time &received_time) {
+    const reference_trajectory::UavFlatTrajectory& msg,
+    const ros::Time& received_time) {
   if (!msg.valid || msg.points.empty()) {
     return false;
   }
@@ -78,7 +102,7 @@ bool ReferenceTrajectoryBuffer::updateFlat(
   std::vector<UavReferencePoint> points;
   points.reserve(msg.points.size());
   double last_t = -1.0;
-  for (const auto &input : msg.points) {
+  for (const auto& input : msg.points) {
     UavReferencePoint point;
     point.t_from_start = normalizeTime(input.t_from_start);
     if (point.t_from_start < last_t) {
@@ -116,8 +140,8 @@ bool ReferenceTrajectoryBuffer::updateFlat(
 }
 
 bool ReferenceTrajectoryBuffer::updateBspline(
-    const reference_trajectory::UavBsplineTrajectory &msg,
-    const ros::Time &received_time, double sample_dt) {
+    const reference_trajectory::UavBsplineTrajectory& msg,
+    const ros::Time& received_time, double sample_dt) {
   const int degree = std::max(1, msg.order);
   if (!msg.valid || msg.knots.size() < static_cast<size_t>(degree + 2) ||
       msg.position_control_points.empty() || sample_dt <= 1e-4) {
@@ -126,7 +150,7 @@ bool ReferenceTrajectoryBuffer::updateBspline(
 
   std::vector<Eigen::Vector3d> control_points;
   control_points.reserve(msg.position_control_points.size());
-  for (const auto &point : msg.position_control_points) {
+  for (const auto& point : msg.position_control_points) {
     const auto value = toVector(point);
     if (!finiteVector(value)) {
       return false;
@@ -154,7 +178,7 @@ bool ReferenceTrajectoryBuffer::updateBspline(
     const double t =
         std::min(u_max - u_min, static_cast<double>(i) * sample_dt);
     const double u = u_min + t;
-    auto &point = points[static_cast<size_t>(i)];
+    auto& point = points[static_cast<size_t>(i)];
     point.t_from_start = t;
     if (!evaluateBsplinePoint(msg.knots, control_points, degree, u,
                               point.position)) {
@@ -201,7 +225,7 @@ bool ReferenceTrajectoryBuffer::updateBspline(
 }
 
 bool ReferenceTrajectoryBuffer::updateLegacySetpoint(
-    const MpcTrajectoryState &trajectory, const ros::Time &received_time) {
+    const MpcTrajectoryState& trajectory, const ros::Time& received_time) {
   if (!trajectory.is_valid) {
     return false;
   }
@@ -216,8 +240,8 @@ bool ReferenceTrajectoryBuffer::updateLegacySetpoint(
 
   std::lock_guard<std::mutex> lock(mutex_);
   ++sequence_;
-  start_time_ =
-      trajectory.planning_time.isZero() ? received_time : trajectory.planning_time;
+  start_time_ = trajectory.planning_time.isZero() ? received_time
+                                                  : trajectory.planning_time;
   received_time_ = received_time;
   points_.assign(1, point);
   valid_ = true;
@@ -234,8 +258,8 @@ void ReferenceTrajectoryBuffer::clear() {
   points_.clear();
 }
 
-bool ReferenceTrajectoryBuffer::sample(const ros::Time &now, double timeout,
-                                       UavReferencePoint &sample) const {
+bool ReferenceTrajectoryBuffer::sample(const ros::Time& now, double timeout,
+                                       UavReferencePoint& sample) const {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!valid_ || points_.empty() || start_time_.isZero() ||
       (timeout > 0.0 && (now - received_time_).toSec() > timeout)) {
@@ -246,9 +270,9 @@ bool ReferenceTrajectoryBuffer::sample(const ros::Time &now, double timeout,
 }
 
 bool ReferenceTrajectoryBuffer::sampleHorizon(
-    const ros::Time &now, double stage_dt, int horizon_steps, double timeout,
+    const ros::Time& now, double stage_dt, int horizon_steps, double timeout,
     double gravity,
-    std::vector<reference_trajectory::UavReferenceSample> &references) const {
+    std::vector<reference_trajectory::UavReferenceSample>& references) const {
   if (horizon_steps <= 0 || stage_dt <= 0.0) {
     return false;
   }
@@ -265,49 +289,65 @@ bool ReferenceTrajectoryBuffer::sampleHorizon(
     local_start = start_time_;
   }
 
+  const std::size_t reference_count =
+      static_cast<std::size_t>(horizon_steps + 2);
+  const double derivative_dt = std::max(1e-3, std::min(0.01, 0.25 * stage_dt));
   references.clear();
-  references.reserve(static_cast<size_t>(horizon_steps + 2));
-  std::vector<UavReferencePoint> points;
-  std::vector<double> times;
-  std::vector<Eigen::Matrix3d> rotations;
-  std::vector<Eigen::Vector3d> omegas;
-  std::vector<Eigen::Vector3d> thrust_vectors;
-  const std::size_t reference_count = static_cast<std::size_t>(horizon_steps + 2);
-  points.reserve(reference_count);
-  times.reserve(reference_count);
-  rotations.reserve(reference_count);
-  omegas.resize(reference_count, Eigen::Vector3d::Zero());
-  thrust_vectors.reserve(reference_count);
+  references.reserve(reference_count);
+
+  auto sample_point = [&](double t, UavReferencePoint& point) {
+    return interpolate(local_points, std::max(0.0, t), point);
+  };
+
+  auto omega_at = [&](double t, Eigen::Vector3d& omega) {
+    UavReferencePoint point;
+    if (!sample_point(t, point)) {
+      return false;
+    }
+    omega = flatKinematics(point, gravity).omega;
+    return omega.array().isFinite().all();
+  };
+
+  auto alpha_at = [&](double t, Eigen::Vector3d& alpha) {
+    Eigen::Vector3d omega_minus;
+    Eigen::Vector3d omega_plus;
+    if (t <= derivative_dt) {
+      Eigen::Vector3d omega_now;
+      if (!omega_at(t, omega_now) || !omega_at(t + derivative_dt, omega_plus)) {
+        return false;
+      }
+      alpha = (omega_plus - omega_now) / derivative_dt;
+      return true;
+    }
+    if (!omega_at(t - derivative_dt, omega_minus) ||
+        !omega_at(t + derivative_dt, omega_plus)) {
+      return false;
+    }
+    alpha = (omega_plus - omega_minus) / (2.0 * derivative_dt);
+    return alpha.array().isFinite().all();
+  };
 
   for (int i = 0; i <= horizon_steps + 1; ++i) {
     UavReferencePoint point;
     const double t = std::max(
         0.0, (now + ros::Duration(i * stage_dt) - local_start).toSec());
-    if (!interpolate(local_points, t, point)) {
+    if (!sample_point(t, point)) {
       return false;
     }
-    const Eigen::Vector3d thrust =
-        point.acceleration + gravity * Eigen::Vector3d::UnitZ();
-    points.push_back(point);
-    times.push_back(t);
-    thrust_vectors.push_back(thrust);
-    rotations.push_back(rotationFromBodyZ(thrust, point.yaw));
-  }
-
-  for (std::size_t i = 0; i < reference_count; ++i) {
-    omegas[i] = finiteDifferenceRotationBody(rotations, times, i);
-  }
-
-  for (std::size_t i = 0; i < reference_count; ++i) {
-    const auto &point = points[i];
+    const FlatKinematics kinematics = flatKinematics(point, gravity);
+    Eigen::Vector3d alpha;
+    if (!alpha_at(t, alpha)) {
+      return false;
+    }
 
     reference_trajectory::UavReferenceSample sample;
     sample.x.setZero();
     sample.x.segment<3>(0) = point.position;
     sample.x.segment<3>(3) = point.velocity;
-    sample.x.segment<4>(6) = quatToVecWxyz(Eigen::Quaterniond(rotations[i]));
-    sample.x.segment<3>(10) = omegas[i];
-    sample.u << thrust_vectors[i].norm(), finiteDifference(omegas, times, i);
+    sample.x.segment<4>(6) =
+        quatToVecWxyz(Eigen::Quaterniond(kinematics.rotation));
+    sample.x.segment<3>(10) = kinematics.omega;
+    sample.u << kinematics.thrust.norm(), alpha;
     references.push_back(sample);
   }
   return true;
@@ -318,14 +358,14 @@ uint64_t ReferenceTrajectoryBuffer::sequence() const {
   return sequence_;
 }
 
-bool ReferenceTrajectoryBuffer::valid(const ros::Time &now,
+bool ReferenceTrajectoryBuffer::valid(const ros::Time& now,
                                       double timeout) const {
   std::lock_guard<std::mutex> lock(mutex_);
   return valid_ && !points_.empty() &&
          (timeout <= 0.0 || (now - received_time_).toSec() <= timeout);
 }
 
-bool ReferenceTrajectoryBuffer::finite(const UavReferencePoint &point) {
+bool ReferenceTrajectoryBuffer::finite(const UavReferencePoint& point) {
   return std::isfinite(point.t_from_start) && finiteVector(point.position) &&
          finiteVector(point.velocity) && finiteVector(point.acceleration) &&
          finiteVector(point.jerk) && finiteVector(point.snap) &&
@@ -333,7 +373,7 @@ bool ReferenceTrajectoryBuffer::finite(const UavReferencePoint &point) {
          std::isfinite(point.yaw_accel);
 }
 
-bool ReferenceTrajectoryBuffer::finiteVector(const Eigen::Vector3d &value) {
+bool ReferenceTrajectoryBuffer::finiteVector(const Eigen::Vector3d& value) {
   return std::isfinite(value.x()) && std::isfinite(value.y()) &&
          std::isfinite(value.z());
 }
@@ -346,8 +386,8 @@ double ReferenceTrajectoryBuffer::normalizeTime(double value) {
 }
 
 bool ReferenceTrajectoryBuffer::interpolate(
-    const std::vector<UavReferencePoint> &points, double t,
-    UavReferencePoint &sample) {
+    const std::vector<UavReferencePoint>& points, double t,
+    UavReferencePoint& sample) {
   if (points.empty() || !std::isfinite(t)) {
     return false;
   }
@@ -360,11 +400,11 @@ bool ReferenceTrajectoryBuffer::interpolate(
     return true;
   }
 
-  const auto upper = std::upper_bound(
-      points.begin(), points.end(), t,
-      [](double lhs, const UavReferencePoint &rhs) {
-        return lhs < rhs.t_from_start;
-      });
+  const auto upper =
+      std::upper_bound(points.begin(), points.end(), t,
+                       [](double lhs, const UavReferencePoint& rhs) {
+                         return lhs < rhs.t_from_start;
+                       });
   const auto next = upper;
   const auto prev = upper - 1;
   const double dt = next->t_from_start - prev->t_from_start;
@@ -382,16 +422,15 @@ bool ReferenceTrajectoryBuffer::interpolate(
   sample.snap = (1.0 - alpha) * prev->snap + alpha * next->snap;
   sample.yaw = prev->yaw + alpha * wrapAngle(next->yaw - prev->yaw);
   sample.yaw_rate = (1.0 - alpha) * prev->yaw_rate + alpha * next->yaw_rate;
-  sample.yaw_accel =
-      (1.0 - alpha) * prev->yaw_accel + alpha * next->yaw_accel;
+  sample.yaw_accel = (1.0 - alpha) * prev->yaw_accel + alpha * next->yaw_accel;
   return finite(sample);
 }
 
 bool ReferenceTrajectoryBuffer::evaluateBspline(
-    const std::vector<double> &knots, const std::vector<double> &values,
-    int degree, double u, double &value) {
-  if (degree < 1 || values.size() + static_cast<size_t>(degree) + 1U !=
-                        knots.size()) {
+    const std::vector<double>& knots, const std::vector<double>& values,
+    int degree, double u, double& value) {
+  if (degree < 1 ||
+      values.size() + static_cast<size_t>(degree) + 1U != knots.size()) {
     return false;
   }
   const int n = static_cast<int>(values.size()) - 1;
@@ -414,13 +453,11 @@ bool ReferenceTrajectoryBuffer::evaluateBspline(
   for (int r = 1; r <= degree; ++r) {
     for (int j = degree; j >= r; --j) {
       const int idx = k - degree + j;
-      const double denom =
-          knots[static_cast<size_t>(idx + degree + 1 - r)] -
-          knots[static_cast<size_t>(idx)];
-      const double alpha =
-          std::abs(denom) < 1e-9 ? 0.0
-                                 : (u - knots[static_cast<size_t>(idx)]) /
-                                       denom;
+      const double denom = knots[static_cast<size_t>(idx + degree + 1 - r)] -
+                           knots[static_cast<size_t>(idx)];
+      const double alpha = std::abs(denom) < 1e-9
+                               ? 0.0
+                               : (u - knots[static_cast<size_t>(idx)]) / denom;
       d[static_cast<size_t>(j)] =
           (1.0 - alpha) * d[static_cast<size_t>(j - 1)] +
           alpha * d[static_cast<size_t>(j)];
@@ -431,8 +468,9 @@ bool ReferenceTrajectoryBuffer::evaluateBspline(
 }
 
 bool ReferenceTrajectoryBuffer::evaluateBsplinePoint(
-    const std::vector<double> &knots, const std::vector<Eigen::Vector3d> &points,
-    int degree, double u, Eigen::Vector3d &value) {
+    const std::vector<double>& knots,
+    const std::vector<Eigen::Vector3d>& points, int degree, double u,
+    Eigen::Vector3d& value) {
   std::vector<double> axis(points.size());
   for (int dim = 0; dim < 3; ++dim) {
     for (size_t i = 0; i < points.size(); ++i) {
@@ -445,4 +483,4 @@ bool ReferenceTrajectoryBuffer::evaluateBsplinePoint(
   return finiteVector(value);
 }
 
-} // namespace multirotor_controller
+}  // namespace multirotor_controller

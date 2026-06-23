@@ -29,7 +29,7 @@ from .references import BaseTrajectory
 class Bounds:
     """Default state and input bounds for the UAV NMPC OCP."""
 
-    u_min: np.ndarray = field(default_factory=lambda: np.array([0.0, -10.0, -10.0, -10.0]))
+    u_min: np.ndarray = field(default_factory=lambda: np.array([0.5, -10.0, -10.0, -10.0]))
     u_max: np.ndarray = field(default_factory=lambda: np.array([25.0, 10.0, 10.0, 10.0]))
     p_min: np.ndarray = field(default_factory=lambda: np.array([-100.0, -100.0, 0.2]))
     p_max: np.ndarray = field(default_factory=lambda: np.array([100.0, 100.0, 6.0]))
@@ -62,15 +62,15 @@ class Bounds:
 class CostWeights:
     """Diagonal cost weights used by the acados NMPC backend."""
 
-    position: np.ndarray = field(default_factory=lambda: 120.0 * np.ones(3))
-    velocity: np.ndarray = field(default_factory=lambda: 35.0 * np.ones(3))
-    attitude: np.ndarray = field(default_factory=lambda: 6.0 * np.ones(3))
-    omega: np.ndarray = field(default_factory=lambda: 0.8 * np.ones(3))
-    terminal_position: np.ndarray = field(default_factory=lambda: 360.0 * np.ones(3))
-    terminal_velocity: np.ndarray = field(default_factory=lambda: 100.0 * np.ones(3))
-    terminal_attitude: np.ndarray = field(default_factory=lambda: 12.0 * np.ones(3))
-    terminal_omega: np.ndarray = field(default_factory=lambda: 1.5 * np.ones(3))
-    control: np.ndarray = field(default_factory=lambda: np.array([0.01, 0.001, 0.001, 0.001]))
+    position: np.ndarray = field(default_factory=lambda: 70.0 * np.ones(3))
+    velocity: np.ndarray = field(default_factory=lambda: 18.0 * np.ones(3))
+    attitude: np.ndarray = field(default_factory=lambda: 5.0 * np.ones(3))
+    omega: np.ndarray = field(default_factory=lambda: 1.5 * np.ones(3))
+    terminal_position: np.ndarray = field(default_factory=lambda: 160.0 * np.ones(3))
+    terminal_velocity: np.ndarray = field(default_factory=lambda: 45.0 * np.ones(3))
+    terminal_attitude: np.ndarray = field(default_factory=lambda: 10.0 * np.ones(3))
+    terminal_omega: np.ndarray = field(default_factory=lambda: 3.0 * np.ones(3))
+    control: np.ndarray = field(default_factory=lambda: np.array([0.02, 0.08, 0.08, 0.04]))
     unit_quat_penalty: float = 10.0
     input_slack: np.ndarray = field(default_factory=lambda: np.array([1.0e8, 1.0e6, 1.0e6, 1.0e6]))
     state_slack_position: np.ndarray = field(default_factory=lambda: 1.0e4 * np.ones(3))

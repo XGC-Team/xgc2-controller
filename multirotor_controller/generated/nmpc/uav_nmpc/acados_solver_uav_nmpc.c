@@ -498,22 +498,22 @@ void uav_nmpc_acados_setup_nlp_in(uav_nmpc_solver_capsule* capsule, const int N,
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 120.0;
-    W_0[1+(NY0) * 1] = 120.0;
-    W_0[2+(NY0) * 2] = 120.0;
-    W_0[3+(NY0) * 3] = 35.0;
-    W_0[4+(NY0) * 4] = 35.0;
-    W_0[5+(NY0) * 5] = 35.0;
-    W_0[6+(NY0) * 6] = 6.0;
-    W_0[7+(NY0) * 7] = 6.0;
-    W_0[8+(NY0) * 8] = 6.0;
-    W_0[9+(NY0) * 9] = 0.8;
-    W_0[10+(NY0) * 10] = 0.8;
-    W_0[11+(NY0) * 11] = 0.8;
-    W_0[12+(NY0) * 12] = 0.01;
-    W_0[13+(NY0) * 13] = 0.001;
-    W_0[14+(NY0) * 14] = 0.001;
-    W_0[15+(NY0) * 15] = 0.001;
+    W_0[0+(NY0) * 0] = 70.0;
+    W_0[1+(NY0) * 1] = 70.0;
+    W_0[2+(NY0) * 2] = 70.0;
+    W_0[3+(NY0) * 3] = 18.0;
+    W_0[4+(NY0) * 4] = 18.0;
+    W_0[5+(NY0) * 5] = 18.0;
+    W_0[6+(NY0) * 6] = 5.0;
+    W_0[7+(NY0) * 7] = 5.0;
+    W_0[8+(NY0) * 8] = 5.0;
+    W_0[9+(NY0) * 9] = 1.5;
+    W_0[10+(NY0) * 10] = 1.5;
+    W_0[11+(NY0) * 11] = 1.5;
+    W_0[12+(NY0) * 12] = 0.02;
+    W_0[13+(NY0) * 13] = 0.08;
+    W_0[14+(NY0) * 14] = 0.08;
+    W_0[15+(NY0) * 15] = 0.04;
     W_0[16+(NY0) * 16] = 10.0;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
@@ -527,22 +527,22 @@ void uav_nmpc_acados_setup_nlp_in(uav_nmpc_solver_capsule* capsule, const int N,
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[0+(NY) * 0] = 120.0;
-    W[1+(NY) * 1] = 120.0;
-    W[2+(NY) * 2] = 120.0;
-    W[3+(NY) * 3] = 35.0;
-    W[4+(NY) * 4] = 35.0;
-    W[5+(NY) * 5] = 35.0;
-    W[6+(NY) * 6] = 6.0;
-    W[7+(NY) * 7] = 6.0;
-    W[8+(NY) * 8] = 6.0;
-    W[9+(NY) * 9] = 0.8;
-    W[10+(NY) * 10] = 0.8;
-    W[11+(NY) * 11] = 0.8;
-    W[12+(NY) * 12] = 0.01;
-    W[13+(NY) * 13] = 0.001;
-    W[14+(NY) * 14] = 0.001;
-    W[15+(NY) * 15] = 0.001;
+    W[0+(NY) * 0] = 70.0;
+    W[1+(NY) * 1] = 70.0;
+    W[2+(NY) * 2] = 70.0;
+    W[3+(NY) * 3] = 18.0;
+    W[4+(NY) * 4] = 18.0;
+    W[5+(NY) * 5] = 18.0;
+    W[6+(NY) * 6] = 5.0;
+    W[7+(NY) * 7] = 5.0;
+    W[8+(NY) * 8] = 5.0;
+    W[9+(NY) * 9] = 1.5;
+    W[10+(NY) * 10] = 1.5;
+    W[11+(NY) * 11] = 1.5;
+    W[12+(NY) * 12] = 0.02;
+    W[13+(NY) * 13] = 0.08;
+    W[14+(NY) * 14] = 0.08;
+    W[15+(NY) * 15] = 0.04;
     W[16+(NY) * 16] = 10.0;
 
     for (int i = 1; i < N; i++)
@@ -557,18 +557,18 @@ void uav_nmpc_acados_setup_nlp_in(uav_nmpc_solver_capsule* capsule, const int N,
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[0+(NYN) * 0] = 360.0;
-    W_e[1+(NYN) * 1] = 360.0;
-    W_e[2+(NYN) * 2] = 360.0;
-    W_e[3+(NYN) * 3] = 100.0;
-    W_e[4+(NYN) * 4] = 100.0;
-    W_e[5+(NYN) * 5] = 100.0;
-    W_e[6+(NYN) * 6] = 12.0;
-    W_e[7+(NYN) * 7] = 12.0;
-    W_e[8+(NYN) * 8] = 12.0;
-    W_e[9+(NYN) * 9] = 1.5;
-    W_e[10+(NYN) * 10] = 1.5;
-    W_e[11+(NYN) * 11] = 1.5;
+    W_e[0+(NYN) * 0] = 160.0;
+    W_e[1+(NYN) * 1] = 160.0;
+    W_e[2+(NYN) * 2] = 160.0;
+    W_e[3+(NYN) * 3] = 45.0;
+    W_e[4+(NYN) * 4] = 45.0;
+    W_e[5+(NYN) * 5] = 45.0;
+    W_e[6+(NYN) * 6] = 10.0;
+    W_e[7+(NYN) * 7] = 10.0;
+    W_e[8+(NYN) * 8] = 10.0;
+    W_e[9+(NYN) * 9] = 3.0;
+    W_e[10+(NYN) * 10] = 3.0;
+    W_e[11+(NYN) * 11] = 3.0;
     W_e[12+(NYN) * 12] = 10.0;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
@@ -812,6 +812,7 @@ void uav_nmpc_acados_setup_nlp_in(uav_nmpc_solver_capsule* capsule, const int N,
     double* lubu = calloc(2*NBU, sizeof(double));
     double* lbu = lubu;
     double* ubu = lubu + NBU;
+    lbu[0] = 0.5;
     ubu[0] = 25.0;
     lbu[1] = -10.0;
     ubu[1] = 10.0;
