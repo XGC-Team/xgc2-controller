@@ -85,7 +85,9 @@ docker run --rm \
     rsync -a --delete /workspace/xgc2-controller/ /workspace/work/src/xgc2-controller/
 
     cd /workspace/work
+    set +u
     source /opt/ros/noetic/setup.bash
+    set -u
     catkin_make run_tests_multirotor_controller
     catkin_test_results
     DESTDIR=/workspace/work/install-root catkin_make install \

@@ -97,7 +97,9 @@ jobs:
           rsync -a --delete "$GITHUB_WORKSPACE/" "$work_dir/src/xgc2-controller/"
 
           cd "$work_dir"
+          set +u
           source /opt/ros/noetic/setup.bash
+          set -u
           catkin_make run_tests_multirotor_controller
           catkin_test_results
           DESTDIR="$install_root" catkin_make install \
