@@ -1,7 +1,7 @@
 schema: xgc2.product.v1
 id: xgc2-controller
 name: XGC2 Controller
-version: 1.0.2-1
+version: 1.0.3-1
 kind: ros1-apt
 summary: ROS1 controller packages for XGC2 robots, including multirotor PX4/MAVROS NMPC control and reference trajectory generation.
 
@@ -21,7 +21,7 @@ apt:
     - libeigen3-dev
     - libxgc2-state-machine-dev
     - libxgc2-geometry-dev
-    - xgc2-acados
+    - xgc2-acados (>= 0.1.0-3~focal)
     - ros-noetic-xgc2-ros1-utils
     - ros-noetic-xgc2-estimator-hover-thrust
 

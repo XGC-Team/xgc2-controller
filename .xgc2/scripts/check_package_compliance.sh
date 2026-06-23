@@ -64,13 +64,15 @@ for file in "${required_files[@]}"; do
 done
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
-grep -q "version: 1.0.2-1" .xgc2/product.yml
+grep -q "version: 1.0.3-1" .xgc2/product.yml
 grep -q "<name>multirotor_controller</name>" multirotor_controller/package.xml
 grep -q "<name>reference_trajectory</name>" reference_trajectory/package.xml
 grep -q "run_tests_reference_trajectory run_tests_multirotor_controller" .github/workflows/build-debs.yml
 grep -q "check_version_bump.sh --ci" .github/workflows/build-debs.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
 grep -q "REFERENCE_ROS_PACKAGE=\"reference_trajectory\"" .xgc2/scripts/package_debs.sh
+grep -q "xgc2-acados (>= 0.1.0-3~focal)" .xgc2/product.yml
+grep -q "xgc2-acados (>= 0.1.0-3~focal)" .xgc2/scripts/package_debs.sh
 
 if grep -R --exclude='check_package_compliance.sh' "ros-noetic-xgc2-reference" \
   .github .xgc2 README.md multirotor_controller reference_trajectory >/dev/null; then

@@ -13,6 +13,8 @@ dpkg -s "ros-${ROS_DISTRO}-xgc2-ros1-utils" >/dev/null
 dpkg -s libxgc2-state-machine-dev >/dev/null
 dpkg -s libxgc2-geometry-dev >/dev/null
 dpkg -s xgc2-acados >/dev/null
+xgc2_acados_version="$(dpkg-query -W -f='${Version}' xgc2-acados)"
+dpkg --compare-versions "${xgc2_acados_version}" ge "0.1.0-3~focal"
 test "$(rospack find reference_trajectory)" = "/opt/ros/${ROS_DISTRO}/share/reference_trajectory"
 test "$(rospack find multirotor_controller)" = "/opt/ros/${ROS_DISTRO}/share/multirotor_controller"
 test -f "/opt/ros/${ROS_DISTRO}/share/reference_trajectory/config/uav_reference_circle_entry.yaml"
