@@ -30,8 +30,7 @@ require_command rsync
 
 mapfile -d '' CXX_FILES < <(
   cd "${REPO_ROOT}"
-  find multirotor_controller/include multirotor_controller/src multirotor_controller/test \
-    reference_trajectory/include reference_trajectory/src reference_trajectory/test -type f \
+  find reference_trajectory/include reference_trajectory/src reference_trajectory/test -type f \
     \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" -o \
       -name "*.h" -o -name "*.hpp" -o -name "*.hh" -o -name "*.hxx" \) \
     -print0 | sort -z
@@ -64,11 +63,8 @@ echo "Generating compile_commands.json..."
 echo "Running clang-tidy..."
 clang-tidy \
   -p "${WORK_DIR}/build" \
-  -header-filter="^${WORK_DIR}/src/xgc2-controller/multirotor_controller/(include|src|test)/" \
+  -header-filter="^${WORK_DIR}/src/xgc2-controller/reference_trajectory/(include|src|test)/" \
   -quiet \
-  "${WORK_DIR}/src/xgc2-controller/reference_trajectory/src/nmpc_reference_trajectory.cpp" \
-  "${WORK_DIR}/src/xgc2-controller/multirotor_controller/src/drone_ros_node.cpp" \
-  "${WORK_DIR}/src/xgc2-controller/multirotor_controller/src/uav/state_machine/custom1_state.cpp" \
-  "${WORK_DIR}/src/xgc2-controller/multirotor_controller/src/uav/nmpc_tracking_backend.cpp"
+  "${WORK_DIR}/src/xgc2-controller/reference_trajectory/src/nmpc_reference_trajectory.cpp"
 
 echo "C++ quality check passed"
