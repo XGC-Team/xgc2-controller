@@ -1,0 +1,159 @@
+name: build-debs
+
+on:
+  push:
+    branches:
+      - noetic
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cpp-quality:
+    name: C++ quality
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    container: ros:noetic-ros-base-focal
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install quality dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates
+          echo "deb [trusted=yes arch=$(dpkg --print-architecture)] https://xgc2.apt.xiaokang.ink focal main" \
+            > /etc/apt/sources.list.d/xgc2.list
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential \
+            clang-format \
+            clang-tidy \
+            cmake \
+            git \
+            libxgc2-geometry-dev \
+            libxgc2-state-machine-dev \
+            rsync \
+            xgc2-acados \
+            ros-noetic-geometry-msgs \
+            ros-noetic-mavros-msgs \
+            ros-noetic-message-generation \
+            ros-noetic-nav-msgs \
+            ros-noetic-roscpp \
+            ros-noetic-sensor-msgs \
+            ros-noetic-std-msgs \
+            ros-noetic-xgc2-estimator-hover-thrust \
+            ros-noetic-xgc2-reference \
+            ros-noetic-xgc2-ros1-utils
+
+      - name: Run C++ quality gate
+        run: .xgc2/scripts/check_cpp_quality.sh
+
+  package-compliance:
+    name: Package compliance and tests
+    runs-on: ubuntu-latest
+    container: ros:noetic-ros-base-focal
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates
+          echo "deb [trusted=yes arch=$(dpkg --print-architecture)] https://xgc2.apt.xiaokang.ink focal main" \
+            > /etc/apt/sources.list.d/xgc2.list
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            git \
+            libxgc2-geometry-dev \
+            libxgc2-state-machine-dev \
+            rsync \
+            xgc2-acados \
+            ros-noetic-geometry-msgs \
+            ros-noetic-mavros-msgs \
+            ros-noetic-message-generation \
+            ros-noetic-nav-msgs \
+            ros-noetic-roscpp \
+            ros-noetic-roslaunch \
+            ros-noetic-rospack \
+            ros-noetic-sensor-msgs \
+            ros-noetic-std-msgs \
+            ros-noetic-xgc2-estimator-hover-thrust \
+            ros-noetic-xgc2-reference \
+            ros-noetic-xgc2-ros1-utils
+
+      - name: Build package and run launch compliance
+        run: |
+          set -euo pipefail
+          work_dir="${RUNNER_TEMP}/xgc2-controller-compliance"
+          install_root="${RUNNER_TEMP}/xgc2-controller-install-root"
+          rm -rf "$work_dir" "$install_root"
+          mkdir -p "$work_dir/src/xgc2-controller"
+          rsync -a --delete "$GITHUB_WORKSPACE/" "$work_dir/src/xgc2-controller/"
+
+          cd "$work_dir"
+          source /opt/ros/noetic/setup.bash
+          catkin_make run_tests_multirotor_controller
+          catkin_test_results
+          DESTDIR="$install_root" catkin_make install \
+            -DCMAKE_INSTALL_PREFIX=/opt/ros/noetic \
+            -DCMAKE_BUILD_TYPE=Release
+          source devel/setup.bash
+          test "$(rospack find multirotor_controller)" = "$work_dir/src/xgc2-controller/multirotor_controller"
+          roslaunch --files multirotor_controller uav_nmpc_controller.launch >/tmp/xgc2-controller-files.txt
+
+  build-debs:
+    name: Build debs (${{ matrix.arch }})
+    needs: package-compliance
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and install-check deb package in Docker
+        run: |
+          .xgc2/scripts/build_debs_in_docker.sh \
+            --work-dir "$RUNNER_TEMP/xgc2-controller-${{ matrix.arch }}" \
+            --output-dir "$GITHUB_WORKSPACE/debs"
+
+      - name: Upload deb artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgc2-controller-debs-${{ matrix.arch }}
+          path: debs/*.deb
+
+  publish-apt:
+    name: Publish APT
+    needs: build-debs
+    runs-on: ubuntu-latest
+    env:
+      APT_REPO_HOST: ${{ secrets.APT_REPO_HOST }}
+      APT_REPO_PORT: ${{ secrets.APT_REPO_PORT }}
+      APT_REPO_SSH_KEY: ${{ secrets.APT_REPO_SSH_KEY }}
+      APT_REPO_KNOWN_HOSTS: ${{ secrets.APT_REPO_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: xgc2-controller-debs-*
+          path: debs
+          merge-multiple: true
+
+      - name: Publish to self-hosted APT repository
+        if: ${{ env.APT_REPO_HOST != '' && env.APT_REPO_PORT != '' && env.APT_REPO_SSH_KEY != '' && env.APT_REPO_KNOWN_HOSTS != '' }}
+        run: .xgc2/scripts/publish_apt_repo.sh --deb-dir debs

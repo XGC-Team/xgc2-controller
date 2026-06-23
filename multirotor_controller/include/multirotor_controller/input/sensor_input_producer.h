@@ -1,0 +1,57 @@
+#pragma once
+
+#include "multirotor_controller/common/types.h"
+#include <ros1_utils/param_utils.h>
+#include <ros1_utils/topic_stats.h>
+
+#include <functional>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <mavros_msgs/State.h>
+#include <ros/ros.h>
+#include <sensor_msgs/BatteryState.h>
+#include <sensor_msgs/Imu.h>
+#include <state_machine/state_machine.hpp>
+#include <string>
+
+namespace multirotor_controller {
+
+class SensorInputProducer {
+public:
+  using EventSink =
+      std::function<::state_machine::Status(::state_machine::Event)>;
+
+  SensorInputProducer(ros::NodeHandle &nh, SensorData &sensor_data,
+                      ros1_utils::PositionQualityStats &vrpn_quality_stats,
+                      uint32_t queue_size, EventSink event_sink,
+                      std::function<void()> on_state_message);
+
+  void setVrpnQualityConfig(const ros1_utils::PositionQualityConfig &config);
+  void setVrpnTopics(std::string pose_topic, std::string twist_topic);
+  void start();
+  void resetNewFlags();
+
+private:
+  void localPosCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
+  void velocityCallback(const geometry_msgs::TwistStamped::ConstPtr &msg);
+  void imuCallback(const sensor_msgs::Imu::ConstPtr &msg);
+  void stateCallback(const mavros_msgs::State::ConstPtr &msg);
+  void batteryCallback(const sensor_msgs::BatteryState::ConstPtr &msg);
+  void vrpnPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
+  void vrpnTwistCallback(const geometry_msgs::TwistStamped::ConstPtr &msg);
+  void postInputEvent(::state_machine::EventId event_id, const char *source);
+
+  ros::NodeHandle &nh_;
+  SensorData &sensor_data_;
+  ros1_utils::PositionQualityStats &vrpn_quality_stats_;
+  uint32_t queue_size_{5};
+  EventSink event_sink_;
+  std::function<void()> on_state_message_;
+  ros1_utils::TopicStatsManager stats_manager_;
+  ros1_utils::PositionQualityDetector vrpn_quality_detector_;
+  std::string vrpn_pose_topic_{"pose"};
+  std::string vrpn_twist_topic_{"twist"};
+  bool started_{false};
+};
+
+} // namespace multirotor_controller

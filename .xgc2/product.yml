@@ -1,0 +1,39 @@
+schema: xgc2.product.v1
+id: xgc2-controller
+name: XGC2 Controller
+version: 1.0.0-1
+kind: ros1-apt
+summary: ROS1 controller packages for XGC2 robots, including multirotor PX4/MAVROS NMPC control.
+
+ros:
+  distro: noetic
+  packages:
+    - multirotor_controller
+
+apt:
+  distribution: focal
+  install:
+    - ros-noetic-xgc2-controller
+  packages:
+    - ros-noetic-xgc2-controller
+  depends:
+    - libxgc2-state-machine-dev
+    - libxgc2-geometry-dev
+    - xgc2-acados
+    - ros-noetic-xgc2-ros1-utils
+    - ros-noetic-xgc2-reference
+    - ros-noetic-xgc2-estimator-hover-thrust
+
+usage:
+  install: |
+    sudo apt update
+    sudo apt install ros-noetic-xgc2-controller
+  smoke_test: |
+    roslaunch --files multirotor_controller uav_nmpc_controller.launch
+
+ownership:
+  paths:
+    - /opt/ros/noetic/share/multirotor_controller
+    - /opt/ros/noetic/include/multirotor_controller
+    - /opt/ros/noetic/lib/multirotor_controller
+    - /opt/ros/noetic/lib/libmultirotor_controller_uav_nmpc_runtime.so
