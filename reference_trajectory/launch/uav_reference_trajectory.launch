@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="ns" default="uav1"/>
+    <arg name="config_file" default="$(find reference_trajectory)/config/uav_reference_circle_entry.yaml"/>
+
+    <group ns="$(arg ns)">
+        <node pkg="reference_trajectory"
+              type="publish_uav_reference_trajectory.py"
+              name="uav_reference_trajectory_publisher"
+              output="screen"
+              clear_params="true">
+            <rosparam command="load" file="$(arg config_file)"/>
+        </node>
+    </group>
+</launch>

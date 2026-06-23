@@ -7,7 +7,8 @@ ROS_DISTRO="${ROS_DISTRO:-noetic}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PACKAGE="ros-${ROS_DISTRO}-xgc2-controller"
-ROS_PACKAGE="multirotor_controller"
+CONTROLLER_ROS_PACKAGE="multirotor_controller"
+REFERENCE_ROS_PACKAGE="reference_trajectory"
 
 product_version() {
   awk -F': *' '/^version:[[:space:]]*/ {print $2; exit}' "${REPO_ROOT}/.xgc2/product.yml"
@@ -67,14 +68,21 @@ copy_path() {
 pkg_root="${BUILD_DIR}/${PACKAGE}"
 mkdir -p "${pkg_root}"
 
-copy_path "${PREFIX_ROOT}/share/${ROS_PACKAGE}" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/lib/${ROS_PACKAGE}" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/include/${ROS_PACKAGE}" "${pkg_root}"
+copy_ros_package() {
+  local ros_package="$1"
+  copy_path "${PREFIX_ROOT}/share/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/lib/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/include/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/share/common-lisp/ros/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/share/gennodejs/ros/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/share/roseus/ros/${ros_package}" "${pkg_root}"
+  copy_path "${PREFIX_ROOT}/lib/python3/dist-packages/${ros_package}" "${pkg_root}"
+}
+
+copy_ros_package "${CONTROLLER_ROS_PACKAGE}"
+copy_ros_package "${REFERENCE_ROS_PACKAGE}"
 copy_path "${PREFIX_ROOT}/lib/libmultirotor_controller_uav_nmpc_runtime.so" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/share/common-lisp/ros/${ROS_PACKAGE}" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/share/gennodejs/ros/${ROS_PACKAGE}" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/share/roseus/ros/${ROS_PACKAGE}" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/lib/python3/dist-packages/${ROS_PACKAGE}" "${pkg_root}"
+copy_path "${PREFIX_ROOT}/lib/libreference_trajectory_nmpc.so" "${pkg_root}"
 
 mkdir -p "${pkg_root}/DEBIAN" "${pkg_root}/usr/share/doc/${PACKAGE}"
 cat > "${pkg_root}/DEBIAN/control" <<EOF
@@ -84,8 +92,8 @@ Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: XGC2 <apt@example.com>
-Depends: libxgc2-state-machine-dev, libxgc2-geometry-dev, xgc2-acados, ros-${ROS_DISTRO}-xgc2-ros1-utils, ros-${ROS_DISTRO}-xgc2-reference, ros-${ROS_DISTRO}-xgc2-estimator-hover-thrust, ros-${ROS_DISTRO}-message-runtime, ros-${ROS_DISTRO}-roscpp, ros-${ROS_DISTRO}-std-msgs, ros-${ROS_DISTRO}-geometry-msgs, ros-${ROS_DISTRO}-nav-msgs, ros-${ROS_DISTRO}-sensor-msgs, ros-${ROS_DISTRO}-mavros-msgs
-Description: XGC2 ROS1 controller packages
+Depends: libeigen3-dev, libxgc2-state-machine-dev, libxgc2-geometry-dev, xgc2-acados, ros-${ROS_DISTRO}-xgc2-ros1-utils, ros-${ROS_DISTRO}-xgc2-estimator-hover-thrust, ros-${ROS_DISTRO}-message-runtime, ros-${ROS_DISTRO}-roscpp, ros-${ROS_DISTRO}-rospy, ros-${ROS_DISTRO}-std-msgs, ros-${ROS_DISTRO}-geometry-msgs, ros-${ROS_DISTRO}-nav-msgs, ros-${ROS_DISTRO}-sensor-msgs, ros-${ROS_DISTRO}-mavros-msgs
+Description: XGC2 ROS1 controller and reference trajectory packages
 EOF
 printf 'xgc2-controller package\n' > "${pkg_root}/usr/share/doc/${PACKAGE}/README"
 chmod 0755 "${pkg_root}/DEBIAN"

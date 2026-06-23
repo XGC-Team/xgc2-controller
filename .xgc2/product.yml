@@ -1,14 +1,15 @@
 schema: xgc2.product.v1
 id: xgc2-controller
 name: XGC2 Controller
-version: 1.0.0-1
+version: 1.0.1-1
 kind: ros1-apt
-summary: ROS1 controller packages for XGC2 robots, including multirotor PX4/MAVROS NMPC control.
+summary: ROS1 controller packages for XGC2 robots, including multirotor PX4/MAVROS NMPC control and reference trajectory generation.
 
 ros:
   distro: noetic
   packages:
     - multirotor_controller
+    - reference_trajectory
 
 apt:
   distribution: focal
@@ -17,11 +18,11 @@ apt:
   packages:
     - ros-noetic-xgc2-controller
   depends:
+    - libeigen3-dev
     - libxgc2-state-machine-dev
     - libxgc2-geometry-dev
     - xgc2-acados
     - ros-noetic-xgc2-ros1-utils
-    - ros-noetic-xgc2-reference
     - ros-noetic-xgc2-estimator-hover-thrust
 
 usage:
@@ -34,6 +35,10 @@ usage:
 ownership:
   paths:
     - /opt/ros/noetic/share/multirotor_controller
+    - /opt/ros/noetic/share/reference_trajectory
     - /opt/ros/noetic/include/multirotor_controller
+    - /opt/ros/noetic/include/reference_trajectory
     - /opt/ros/noetic/lib/multirotor_controller
+    - /opt/ros/noetic/lib/reference_trajectory
     - /opt/ros/noetic/lib/libmultirotor_controller_uav_nmpc_runtime.so
+    - /opt/ros/noetic/lib/libreference_trajectory_nmpc.so

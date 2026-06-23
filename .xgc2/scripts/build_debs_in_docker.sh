@@ -40,6 +40,9 @@ docker pull "${DOCKER_IMAGE}"
 docker run --rm \
   -e DEBIAN_FRONTEND=noninteractive \
   -e INSTALL_CHECK="${INSTALL_CHECK}" \
+  -e XGC2_APT_COMPONENT="${XGC2_APT_COMPONENT:-}" \
+  -e XGC2_APT_DISTRIBUTION="${XGC2_APT_DISTRIBUTION:-}" \
+  -e XGC2_APT_SOURCE_URL="${XGC2_APT_SOURCE_URL:-}" \
   -v "${REPO_ROOT}:/workspace/xgc2-controller:ro" \
   -v "${WORK_DIR}:/workspace/work" \
   -v "${OUTPUT_DIR}:/workspace/out" \
@@ -48,11 +51,7 @@ docker run --rm \
     set -euo pipefail
 
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y --no-install-recommends ca-certificates
-    echo "deb [trusted=yes arch=$(dpkg --print-architecture)] https://xgc2.apt.xiaokang.ink focal main" \
-      > /etc/apt/sources.list.d/xgc2.list
-    apt-get update
+    /workspace/xgc2-controller/.xgc2/scripts/setup_xgc2_apt_source.sh
     apt-get install -y --no-install-recommends \
       build-essential \
       ca-certificates \
@@ -61,6 +60,7 @@ docker run --rm \
       fakeroot \
       file \
       git \
+      libeigen3-dev \
       libxgc2-geometry-dev \
       libxgc2-state-machine-dev \
       rsync \
@@ -72,12 +72,12 @@ docker run --rm \
       ros-noetic-roscpp \
       ros-noetic-roslaunch \
       ros-noetic-rospack \
+      ros-noetic-rospy \
       ros-noetic-rostest \
       ros-noetic-rosunit \
       ros-noetic-sensor-msgs \
       ros-noetic-std-msgs \
       ros-noetic-xgc2-estimator-hover-thrust \
-      ros-noetic-xgc2-reference \
       ros-noetic-xgc2-ros1-utils
 
     rm -rf /workspace/work/src /workspace/work/build /workspace/work/devel /workspace/work/install-root
@@ -88,7 +88,7 @@ docker run --rm \
     set +u
     source /opt/ros/noetic/setup.bash
     set -u
-    catkin_make run_tests_multirotor_controller
+    catkin_make run_tests_reference_trajectory run_tests_multirotor_controller
     catkin_test_results
     DESTDIR=/workspace/work/install-root catkin_make install \
       -DCMAKE_INSTALL_PREFIX=/opt/ros/noetic \

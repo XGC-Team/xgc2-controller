@@ -1,0 +1,10 @@
+std_msgs/Header header
+uint64 trajectory_id
+uint64 sequence
+time start_time
+int32 order
+float64[] knots
+geometry_msgs/Point[] position_control_points
+float64[] yaw_control_points
+float64 yaw_dt
+bool valid
