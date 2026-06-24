@@ -9,8 +9,9 @@
 
 namespace multirotor_controller {
 
-Px4ServiceOutputConsumer::Px4ServiceOutputConsumer(ros::NodeHandle &nh,
-                                                   RosOutputExecutor &executor)
+Px4ServiceOutputConsumer::Px4ServiceOutputConsumer(
+    ros::NodeHandle &nh,
+    ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor)
     : nh_(nh), executor_(executor) {}
 
 void Px4ServiceOutputConsumer::initializeClientsIfNeeded() {

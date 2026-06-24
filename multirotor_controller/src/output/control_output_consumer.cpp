@@ -12,8 +12,10 @@ namespace multirotor_controller {
 namespace {
 
 template <typename Message>
-std::unique_ptr<RosOutputTask> makePublishTask(std::string name, ros::Publisher pub, Message msg) {
-    return std::make_unique<RosLambdaOutputTask>(
+std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>>
+makePublishTask(std::string name, ros::Publisher pub, Message msg) {
+    return std::make_unique<
+        ::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
         std::move(name), [pub = std::move(pub), msg = std::move(msg)](ros::NodeHandle&) mutable {
             pub.publish(msg);
         });
@@ -21,8 +23,10 @@ std::unique_ptr<RosOutputTask> makePublishTask(std::string name, ros::Publisher 
 
 }  // namespace
 
-ControlOutputConsumer::ControlOutputConsumer(ros::NodeHandle& nh, RosOutputExecutor& executor,
-                                             DroneController& controller, uint32_t queue_size)
+ControlOutputConsumer::ControlOutputConsumer(
+    ros::NodeHandle& nh,
+    ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle>& executor,
+    DroneController& controller, uint32_t queue_size)
     : executor_(executor), controller_(controller) {
     setpoint_raw_pub_ =
         nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", queue_size);

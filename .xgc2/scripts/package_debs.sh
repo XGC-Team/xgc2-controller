@@ -92,7 +92,7 @@ Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: XGC2 <apt@example.com>
-Depends: libeigen3-dev, libxgc2-state-machine-dev, libxgc2-geometry-dev, xgc2-acados (>= 0.1.0-3~focal), ros-${ROS_DISTRO}-xgc2-ros1-utils, ros-${ROS_DISTRO}-xgc2-estimator-hover-thrust, ros-${ROS_DISTRO}-message-runtime, ros-${ROS_DISTRO}-roscpp, ros-${ROS_DISTRO}-rospy, ros-${ROS_DISTRO}-std-msgs, ros-${ROS_DISTRO}-geometry-msgs, ros-${ROS_DISTRO}-nav-msgs, ros-${ROS_DISTRO}-sensor-msgs, ros-${ROS_DISTRO}-mavros-msgs
+Depends: libeigen3-dev, libxgc2-state-machine-dev (>= 0.1.2-1~focal), libxgc2-geometry-dev, xgc2-acados (>= 0.1.0-3~focal), ros-${ROS_DISTRO}-xgc2-ros1-utils, ros-${ROS_DISTRO}-xgc2-estimator-hover-thrust (>= 1.1.21-1), ros-${ROS_DISTRO}-xgc2-estimator-rigid-state (>= 1.0.2-1), ros-${ROS_DISTRO}-message-runtime, ros-${ROS_DISTRO}-roscpp, ros-${ROS_DISTRO}-rospy, ros-${ROS_DISTRO}-std-msgs, ros-${ROS_DISTRO}-geometry-msgs, ros-${ROS_DISTRO}-nav-msgs, ros-${ROS_DISTRO}-sensor-msgs, ros-${ROS_DISTRO}-mavros-msgs
 Description: XGC2 ROS1 controller and reference trajectory packages
 EOF
 printf 'xgc2-controller package\n' > "${pkg_root}/usr/share/doc/${PACKAGE}/README"

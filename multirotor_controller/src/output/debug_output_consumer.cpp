@@ -11,9 +11,10 @@ namespace multirotor_controller {
 namespace {
 
 template <typename Message>
-std::unique_ptr<RosOutputTask>
+std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>>
 makePublishTask(std::string name, ros::Publisher pub, Message msg) {
-  return std::make_unique<RosLambdaOutputTask>(
+  return std::make_unique<
+      ::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
       std::move(name), [pub = std::move(pub), msg = std::move(msg)](
                            ros::NodeHandle &) mutable { pub.publish(msg); });
 }
@@ -21,7 +22,8 @@ makePublishTask(std::string name, ros::Publisher pub, Message msg) {
 } // namespace
 
 DebugOutputConsumer::DebugOutputConsumer(
-    ros::NodeHandle &nh, RosOutputExecutor &executor,
+    ros::NodeHandle &nh,
+    ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor,
     DroneController &controller, const SensorData &sensor_data,
     const ros1_utils::PositionQualityStats &vrpn_quality_stats,
     const bool &debug_print_enabled, uint32_t queue_size)
@@ -32,6 +34,8 @@ DebugOutputConsumer::DebugOutputConsumer(
       nh.advertise<std_msgs::String>("custom/statustext", queue_size);
   events_pub_ = nh.advertise<std_msgs::UInt32MultiArray>(
       "alg/state_machine_events", queue_size);
+  stats_state_estimate_pub_ = nh.advertise<std_msgs::Float32MultiArray>(
+      "alg/stats/state_estimate", queue_size);
   stats_local_pos_pub_ = nh.advertise<std_msgs::Float32MultiArray>(
       "alg/stats/local_pos", queue_size);
   stats_local_vel_pub_ = nh.advertise<std_msgs::Float32MultiArray>(
@@ -71,14 +75,18 @@ bool DebugOutputConsumer::handle(const ::state_machine::Event &event) {
     return true;
   case output_event_type::PUBLISH_SENSOR_STATS: {
     const auto snapshot = snapshotSensorStats();
-    executor_.pushTask(std::make_unique<RosLambdaOutputTask>(
+    executor_.pushTask(std::make_unique<
+                       ::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
         "PublishSensorStats",
-        [snapshot, local_pos_pub = stats_local_pos_pub_,
+        [snapshot, state_estimate_pub = stats_state_estimate_pub_,
+         local_pos_pub = stats_local_pos_pub_,
          local_vel_pub = stats_local_vel_pub_, imu_pub = stats_imu_pub_,
          state_pub = stats_state_pub_, battery_pub = stats_battery_pub_,
          vrpn_pose_pub = stats_vrpn_pose_pub_,
          vrpn_twist_pub = stats_vrpn_twist_pub_,
          quality_pub = vrpn_quality_pub_](ros::NodeHandle &) mutable {
+          state_estimate_pub.publish(
+              makeTopicStatsMessage(snapshot.state_estimate));
           local_pos_pub.publish(makeTopicStatsMessage(snapshot.local_pos));
           local_vel_pub.publish(makeTopicStatsMessage(snapshot.local_velocity));
           imu_pub.publish(makeTopicStatsMessage(snapshot.imu));
@@ -98,7 +106,8 @@ bool DebugOutputConsumer::handle(const ::state_machine::Event &event) {
   case output_event_type::PRINT_SENSOR_DEBUG:
     if (debug_print_enabled_) {
       const SensorData snapshot = sensor_data_;
-      executor_.pushTask(std::make_unique<RosLambdaOutputTask>(
+      executor_.pushTask(std::make_unique<
+                         ::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
           "PrintSensorDebug",
           [snapshot](ros::NodeHandle &) { printSensorDebug(snapshot); }));
     }
@@ -169,10 +178,11 @@ std_msgs::Float32MultiArray DebugOutputConsumer::makeVrpnQualityMessage(
 DebugOutputConsumer::SensorStatsSnapshot
 DebugOutputConsumer::snapshotSensorStats() const {
   return SensorStatsSnapshot{
-      sensor_data_.local_pos_stats,  sensor_data_.local_velocity_stats,
-      sensor_data_.imu_stats,        sensor_data_.state_stats,
-      sensor_data_.battery_stats,    sensor_data_.vrpn_pose_stats,
-      sensor_data_.vrpn_twist_stats, vrpn_quality_stats_};
+      sensor_data_.uav_state_estimate_stats, sensor_data_.local_pos_stats,
+      sensor_data_.local_velocity_stats,     sensor_data_.imu_stats,
+      sensor_data_.state_stats,              sensor_data_.battery_stats,
+      sensor_data_.vrpn_pose_stats,          sensor_data_.vrpn_twist_stats,
+      vrpn_quality_stats_};
 }
 
 std_msgs::UInt32MultiArray
@@ -188,8 +198,14 @@ DebugOutputConsumer::snapshotStateMachineEvents() const {
 
 void DebugOutputConsumer::printSensorDebug(const SensorData &sensor_data) {
   ROS_INFO("[SensorData Debug] ================================");
-  ROS_INFO("[SensorData Debug] Position: x=%.3f, y=%.3f, z=%.3f", sensor_data.x,
-           sensor_data.y, sensor_data.z);
+  ROS_INFO("[SensorData Debug] StateEstimate: state=%u flags=0x%08x "
+           "stamp=%.3f active=%s",
+           static_cast<unsigned>(sensor_data.uav_state_estimator_state),
+           static_cast<unsigned>(sensor_data.uav_state_estimator_flags),
+           sensor_data.uav_state_estimate_stamp,
+           sensor_data.uav_state_estimate_stats.is_active ? "true" : "false");
+  ROS_INFO("[SensorData Debug] Control position: x=%.3f, y=%.3f, z=%.3f",
+           sensor_data.x, sensor_data.y, sensor_data.z);
   ROS_INFO("[SensorData Debug] Quaternion: qx=%.3f, qy=%.3f, qz=%.3f, qw=%.3f",
            sensor_data.qx, sensor_data.qy, sensor_data.qz, sensor_data.qw);
   ROS_INFO("[SensorData Debug] Velocity: vx=%.3f, vy=%.3f, vz=%.3f",

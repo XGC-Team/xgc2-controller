@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "estimator_rigid_state/RigidStateEstimate.h"
+#include "multirotor_controller/common/sensor_checks.h"
 #include "multirotor_controller/nmpc/uav_nmpc_solver.h"
 #include "multirotor_controller/uav/nmpc_result_buffer.h"
 #include "multirotor_controller/uav/reference_trajectory_buffer.h"
@@ -163,6 +165,28 @@ TEST(NmpcResultBuffer, KeepsNewestSequence) {
   EXPECT_TRUE(output.success);
   EXPECT_TRUE(buffer.hasFreshSuccess(ros::Time(1.05), 0.1));
   EXPECT_FALSE(buffer.hasFreshSuccess(ros::Time(1.2), 0.1));
+}
+
+TEST(SensorChecks, StateEstimateGateIsOnlyControlStateSource) {
+  SensorData sensor;
+  sensor.uav_state_estimate_stats.is_active = true;
+  sensor.uav_state_estimator_state =
+      estimator_rigid_state::RigidStateEstimate::STATE_RUNNING;
+  sensor.uav_state_estimator_flags = 0u;
+  EXPECT_TRUE(sensor_checks::isStateEstimateUsableForControl(sensor));
+
+  sensor.uav_state_estimator_state =
+      estimator_rigid_state::RigidStateEstimate::STATE_COASTING;
+  EXPECT_TRUE(sensor_checks::isStateEstimateUsableForControl(sensor));
+
+  sensor.uav_state_estimator_flags =
+      estimator_rigid_state::RigidStateEstimate::FLAG_FAULT;
+  EXPECT_FALSE(sensor_checks::isStateEstimateUsableForControl(sensor));
+
+  sensor.uav_state_estimator_flags = 0u;
+  sensor.uav_state_estimator_state =
+      estimator_rigid_state::RigidStateEstimate::STATE_SELF_CHECK;
+  EXPECT_FALSE(sensor_checks::isStateEstimateUsableForControl(sensor));
 }
 
 TEST(UavNmpcSolver, SolvesHoverEquilibrium) {

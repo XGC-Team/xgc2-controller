@@ -60,12 +60,16 @@ DroneRosNode::DroneRosNode(ros::NodeHandle &nh)
         }
       });
   loadVrpnQualityConfig();
+  std::string state_estimate_topic;
   std::string vrpn_pose_topic;
   std::string vrpn_twist_topic;
+  nh_private_.param<std::string>("state_estimate_topic", state_estimate_topic,
+                                 "alg/state_estimator/state");
   nh_private_.param<std::string>("vrpn_pose_topic", vrpn_pose_topic,
                                  "pose");
   nh_private_.param<std::string>("vrpn_twist_topic", vrpn_twist_topic,
                                  "twist");
+  sensor_input_producer_->setStateEstimateTopic(state_estimate_topic);
   sensor_input_producer_->setVrpnTopics(vrpn_pose_topic, vrpn_twist_topic);
 
   command_input_producer_ = std::make_unique<CommandInputProducer>(
@@ -85,13 +89,14 @@ DroneRosNode::DroneRosNode(ros::NodeHandle &nh)
 
   ROS_INFO("[DroneRosNode] Initialized (with async output event executor)");
   ROS_INFO("[DroneRosNode] Subscribed topics:");
-  ROS_INFO("  - mavros/local_position/pose");
-  ROS_INFO("  - mavros/local_position/velocity_local");
-  ROS_INFO("  - mavros/imu/data");
+  ROS_INFO("  - %s (control state)", resolveTopicName(nh_, state_estimate_topic).c_str());
+  ROS_INFO("  - mavros/local_position/pose (check only)");
+  ROS_INFO("  - mavros/local_position/velocity_local (check only)");
+  ROS_INFO("  - mavros/imu/data (check only)");
   ROS_INFO("  - mavros/state");
   ROS_INFO("  - mavros/battery");
-  ROS_INFO("  - %s", resolveTopicName(nh_, vrpn_pose_topic).c_str());
-  ROS_INFO("  - %s", resolveTopicName(nh_, vrpn_twist_topic).c_str());
+  ROS_INFO("  - %s (check only)", resolveTopicName(nh_, vrpn_pose_topic).c_str());
+  ROS_INFO("  - %s (check only)", resolveTopicName(nh_, vrpn_twist_topic).c_str());
   ROS_INFO("  - alg/setpoint_raw/local");
   ROS_INFO("  - alg/reference_trajectory/bspline");
   ROS_INFO("  - alg/reference_trajectory/flat");
@@ -173,7 +178,17 @@ void DroneRosNode::controlLoopCallback() {
 
 void DroneRosNode::dispatchOutputEvents(
     const std::vector<::state_machine::Event> &events) {
-  output_event_dispatcher_.dispatch(events);
+  const auto result = output_event_dispatcher_.dispatch(events);
+  for (const auto &event : result.unhandled_events) {
+    ROS_WARN("[DroneRosNode] Unhandled output event id: %u",
+             static_cast<unsigned>(event.id));
+  }
+  for (const auto &failure : result.failures) {
+    ROS_WARN("[DroneRosNode] Output consumer '%s' failed on event %u: %s",
+             failure.consumer_name.c_str(),
+             static_cast<unsigned>(failure.event.id),
+             failure.message.c_str());
+  }
 }
 
 void DroneRosNode::loadControllerConfig() {

@@ -1,17 +1,17 @@
 #pragma once
 
-#include "multirotor_controller/common/ros_output_runtime.h"
 #include "multirotor_controller/drone_controller.h"
 #include "multirotor_controller/input/command_input_producer.h"
 #include "multirotor_controller/input/sensor_input_producer.h"
 #include "multirotor_controller/input/trajectory_input_producer.h"
-#include "multirotor_controller/output/output_event_consumer.h"
 #include "multirotor_controller/output/px4_service_output_consumer.h"
 #include "multirotor_controller/service/runtime_parameter_service.h"
 #include <ros1_utils/topic_stats.h>
 
 #include <memory>
 #include <ros/ros.h>
+#include <state_machine/runtime/async_task_executor.hpp>
+#include <state_machine/runtime/event_dispatcher.hpp>
 
 namespace multirotor_controller {
 
@@ -34,8 +34,9 @@ private:
   SensorData sensor_data_;
   DroneController controller_;
 
-  RosOutputExecutor output_event_executor_;
-  OutputEventDispatcher output_event_dispatcher_;
+  ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle>
+      output_event_executor_;
+  ::state_machine::runtime::EventDispatcher output_event_dispatcher_;
   Px4ServiceOutputConsumer *px4_service_consumer_{nullptr};
 
   ros1_utils::PositionQualityStats vrpn_quality_stats_;

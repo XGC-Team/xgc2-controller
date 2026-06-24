@@ -4,6 +4,7 @@
 
 #include <ros/console.h>
 
+#include "multirotor_controller/common/sensor_checks.h"
 #include "multirotor_controller/nmpc/nmpc_math_utils.h"
 
 namespace multirotor_controller {
@@ -146,27 +147,13 @@ void UavNmpcTrackingBackend::exit() { entered_ = false; }
 
 bool UavNmpcTrackingBackend::feedbackState(const SensorData &sensor,
                                            Vector13d &x0) const {
-  const bool use_vrpn =
-      sensor.vrpn_pose_stats.is_active && sensor.vrpn_twist_stats.is_active;
-  const bool use_local =
-      sensor.local_pos_stats.is_active && sensor.local_velocity_stats.is_active;
-  if (!use_vrpn && !use_local) {
+  if (!sensor_checks::isStateEstimateUsableForControl(sensor)) {
     return false;
   }
 
-  Eigen::Vector3d position;
-  Eigen::Vector3d velocity;
-  Eigen::Quaterniond attitude;
-  if (use_vrpn) {
-    position << sensor.vrpn_x, sensor.vrpn_y, sensor.vrpn_z;
-    velocity << sensor.vrpn_vx, sensor.vrpn_vy, sensor.vrpn_vz;
-    attitude = Eigen::Quaterniond(sensor.vrpn_qw, sensor.vrpn_qx,
-                                  sensor.vrpn_qy, sensor.vrpn_qz);
-  } else {
-    position << sensor.x, sensor.y, sensor.z;
-    velocity << sensor.vx, sensor.vy, sensor.vz;
-    attitude = Eigen::Quaterniond(sensor.qw, sensor.qx, sensor.qy, sensor.qz);
-  }
+  Eigen::Vector3d position(sensor.x, sensor.y, sensor.z);
+  Eigen::Vector3d velocity(sensor.vx, sensor.vy, sensor.vz);
+  Eigen::Quaterniond attitude(sensor.qw, sensor.qx, sensor.qy, sensor.qz);
 
   if (!std::isfinite(attitude.norm()) || attitude.norm() < 1e-9) {
     return false;
@@ -177,11 +164,7 @@ bool UavNmpcTrackingBackend::feedbackState(const SensorData &sensor,
   x0.segment<3>(0) = position;
   x0.segment<3>(3) = velocity;
   x0.segment<4>(6) = quatToVecWxyz(attitude);
-  if (use_vrpn) {
-    x0.segment<3>(10) << sensor.vrpn_wx, sensor.vrpn_wy, sensor.vrpn_wz;
-  } else {
-    x0.segment<3>(10) << sensor.wx, sensor.wy, sensor.wz;
-  }
+  x0.segment<3>(10) << sensor.wx, sensor.wy, sensor.wz;
 
   if (!isFinite(x0)) {
     return false;

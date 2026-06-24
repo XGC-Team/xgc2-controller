@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>multirotor_controller</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>XGC2 multirotor controller with PX4/MAVROS state-machine runtime and UAV NMPC tracking.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
@@ -57,11 +57,12 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>mavros_msgs</build_depend>
-  <build_depend>libxgc2-state-machine-dev</build_depend>
+  <build_depend version_gte="0.1.2-1~focal">libxgc2-state-machine-dev</build_depend>
   <build_depend>libxgc2-geometry-dev</build_depend>
   <build_depend>ros1_utils</build_depend>
   <build_depend>reference_trajectory</build_depend>
   <build_depend>hover_thrust_estimator</build_depend>
+  <build_depend>estimator_rigid_state</build_depend>
   <build_depend>xgc2-acados</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
@@ -71,11 +72,12 @@
   <build_export_depend>nav_msgs</build_export_depend>
   <build_export_depend>sensor_msgs</build_export_depend>
   <build_export_depend>mavros_msgs</build_export_depend>
-  <build_export_depend>libxgc2-state-machine-dev</build_export_depend>
+  <build_export_depend version_gte="0.1.2-1~focal">libxgc2-state-machine-dev</build_export_depend>
   <build_export_depend>libxgc2-geometry-dev</build_export_depend>
   <build_export_depend>ros1_utils</build_export_depend>
   <build_export_depend>reference_trajectory</build_export_depend>
   <build_export_depend>hover_thrust_estimator</build_export_depend>
+  <build_export_depend>estimator_rigid_state</build_export_depend>
   <build_export_depend>xgc2-acados</build_export_depend>
 
   <exec_depend>roscpp</exec_depend>
@@ -85,11 +87,12 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>mavros_msgs</exec_depend>
-  <exec_depend>libxgc2-state-machine-dev</exec_depend>
+  <exec_depend version_gte="0.1.2-1~focal">libxgc2-state-machine-dev</exec_depend>
   <exec_depend>libxgc2-geometry-dev</exec_depend>
   <exec_depend>ros1_utils</exec_depend>
   <exec_depend>reference_trajectory</exec_depend>
   <exec_depend>hover_thrust_estimator</exec_depend>
+  <exec_depend>estimator_rigid_state</exec_depend>
   <exec_depend>xgc2-acados</exec_depend>
 
 

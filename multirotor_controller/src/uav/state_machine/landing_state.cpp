@@ -15,7 +15,7 @@ LandingState::onEnter(::state_machine::StateContext &ctx) {
   controller_.logInfo("[LandingState] Entering Landing State");
 
   const auto &sensor_data = controller_.getSensorData();
-  initial_altitude_ = sensor_data.vrpn_z;
+  initial_altitude_ = sensor_data.z;
 
   const double slowest_descent_rate =
       std::max(std::min(std::abs(LANDING_VZ_HIGH_ALTITUDE),
@@ -56,7 +56,7 @@ void LandingState::configureLandingSetpoint() {
   landing_setpoint_.z = 0.0;
   landing_setpoint_.vx = 0.0;
   landing_setpoint_.vy = 0.0;
-  landing_setpoint_.vz = getDescentVelocity(sensor_data.vrpn_z);
+  landing_setpoint_.vz = getDescentVelocity(sensor_data.z);
   landing_setpoint_.ax = 0.0;
   landing_setpoint_.ay = 0.0;
   landing_setpoint_.az = 0.0;
@@ -89,8 +89,8 @@ LandingState::onTick(::state_machine::StateContext &ctx) {
 
 void LandingState::updateDescentVelocityIfNeeded() {
   const auto &sensor_data = controller_.getSensorData();
-  if (sensor_data.vrpn_pose_stats.is_new) {
-    landing_setpoint_.vz = getDescentVelocity(sensor_data.vrpn_z);
+  if (sensor_data.uav_state_estimate_stats.is_new) {
+    landing_setpoint_.vz = getDescentVelocity(sensor_data.z);
   }
 }
 
@@ -109,7 +109,7 @@ void LandingState::logStatusIfDue() {
   controller_.logInfo(
       "[LandingState] Altitude: %.2f m, Descent rate: %.2f m/s, landed "
       "frames: %d/%d",
-      sensor_data.vrpn_z, landing_setpoint_.vz, confirmed_landed_frames_,
+      sensor_data.z, landing_setpoint_.vz, confirmed_landed_frames_,
       CONSECUTIVE_SETTLED_FRAMES);
   log_timer_.reset();
 }
@@ -140,14 +140,14 @@ void LandingState::updateTouchdownConfirmation() {
 
   const auto &sensor_data = controller_.getSensorData();
   const bool sensor_updated =
-      sensor_data.vrpn_pose_stats.is_new || sensor_data.vrpn_twist_stats.is_new;
+      sensor_data.uav_state_estimate_stats.is_new;
   if (!sensor_updated) {
     return;
   }
 
   const bool velocity_settled =
-      std::abs(sensor_data.vrpn_vz) <= TOUCHDOWN_VELOCITY_THRESHOLD;
-  const bool altitude_settled = sensor_data.vrpn_z <= GROUND_ALTITUDE;
+      std::abs(sensor_data.vz) <= TOUCHDOWN_VELOCITY_THRESHOLD;
+  const bool altitude_settled = sensor_data.z <= GROUND_ALTITUDE;
   if (!velocity_settled || !altitude_settled) {
     confirmed_landed_frames_ = 0;
     return;
@@ -184,21 +184,21 @@ LandingState::onExit(::state_machine::StateContext &ctx) {
   // 根据退出原因选择不同的处理方式
   switch (exit_reason_) {
   case ExitReason::LANDING_TIMEOUT:
-    // 超时着陆：打印警告并强制上锁（使用 VRPN 数据）
+    // 超时着陆：打印警告并强制上锁
     controller_.logWarn(
         "[LandingState] Forced touchdown after %.1f s at altitude %.2f m "
         "(vz=%.2f m/s)",
-        elapsed_time, sensor_data.vrpn_z, sensor_data.vrpn_vz);
+        elapsed_time, sensor_data.z, sensor_data.vz);
     ctx.emitOutput(::state_machine::Event(
         output_event_type::REQUEST_KILL,
         ::state_machine::EventTimestamp{controller_.getCurrentTime()}));
     break;
 
   case ExitReason::TOUCHDOWN:
-    // 正常着陆：打印信息并上锁（使用 VRPN 数据）
+    // 正常着陆：打印信息并上锁
     controller_.logInfo(
         "[LandingState] Landed at altitude: %.2f m (vz=%.2f m/s)",
-        sensor_data.vrpn_z, sensor_data.vrpn_vz);
+        sensor_data.z, sensor_data.vz);
     {
       ::state_machine::Event event(
           output_event_type::REQUEST_ARMING,

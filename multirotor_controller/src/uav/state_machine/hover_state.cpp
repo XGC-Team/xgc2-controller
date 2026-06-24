@@ -23,9 +23,9 @@ void HoverState::configureHoverSetpoint() {
   const auto &config = controller_.getConfig();
   Setpoint &setpoint = controller_.getSetpoint();
 
-  setpoint.x = sensor_data.vrpn_x;
-  setpoint.y = sensor_data.vrpn_y;
-  setpoint.z = sensor_data.vrpn_z;
+  setpoint.x = sensor_data.x;
+  setpoint.y = sensor_data.y;
+  setpoint.z = sensor_data.z;
   setpoint.vx = 0.0;
   setpoint.vy = 0.0;
   setpoint.vz = 0.0;
@@ -36,10 +36,10 @@ void HoverState::configureHoverSetpoint() {
   setpoint.type_mask = HOVER_POSITION_VELOCITY_TYPE_MASK;
 
   if (config.enable_yaw_control) {
-    setpoint.qx = sensor_data.vrpn_qx;
-    setpoint.qy = sensor_data.vrpn_qy;
-    setpoint.qz = sensor_data.vrpn_qz;
-    setpoint.qw = sensor_data.vrpn_qw;
+    setpoint.qx = sensor_data.qx;
+    setpoint.qy = sensor_data.qy;
+    setpoint.qz = sensor_data.qz;
+    setpoint.qw = sensor_data.qw;
     setpoint.type_mask &= ~IGNORE_YAW_BIT;
     controller_.logInfo("[HoverState] Yaw control enabled: holding current yaw");
   } else {

@@ -25,13 +25,19 @@ SelfCheckState::onTick(::state_machine::StateContext &) {
     const bool vrpn_twist_active = sensor_data.vrpn_twist_stats.is_active;
     const bool pose_consistent =
         sensor_checks::isVrpnPoseConsistent(sensor_data);
+    const bool state_estimate_ready =
+        sensor_checks::isStateEstimateUsableForControl(sensor_data);
     const double vrpn_local_diff =
         sensor_checks::vrpnLocalPositionDiff(sensor_data);
 
     controller_.logInfo(
         "[SelfCheckState] Checking sensors... "
-        "LocalPos:%s Velocity:%s IMU:%s State:%s Battery:%s "
-        "VRPNPose:%s VRPNTwist:%s PoseConsistency:%s Diff:%.3fm FCU:%s(%s)",
+        "StateEstimate:%s(est=%u flags=0x%08x) LocalPos:%s Velocity:%s "
+        "IMU:%s State:%s Battery:%s VRPNPose:%s VRPNTwist:%s "
+        "PoseConsistency:%s Diff:%.3fm FCU:%s(%s)",
+        state_estimate_ready ? "OK" : "X",
+        static_cast<unsigned>(sensor_data.uav_state_estimator_state),
+        static_cast<unsigned>(sensor_data.uav_state_estimator_flags),
         sensor_data.local_pos_stats.is_active ? "OK" : "X",
         sensor_data.local_velocity_stats.is_active ? "OK" : "X",
         sensor_data.imu_stats.is_active ? "OK" : "X",

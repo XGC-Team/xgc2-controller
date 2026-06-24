@@ -166,6 +166,7 @@ constexpr uint32_t INPUT_REFERENCE_TRAJECTORY_UPDATED = 59;
 constexpr uint32_t INPUT_NMPC_SOLVE_SUCCEEDED = 60;
 constexpr uint32_t INPUT_NMPC_SOLVE_FAILED = 61;
 constexpr uint32_t INPUT_NMPC_SOLVE_TIMED_OUT = 62;
+constexpr uint32_t INPUT_UAV_STATE_ESTIMATE_UPDATED = 63;
 
 // 内部条件事件
 constexpr uint32_t ALTITUDE_REACHED = 10;
@@ -189,6 +190,8 @@ constexpr uint32_t SAFE_TIMEOUT_STATE = 23;
 constexpr uint32_t SAFE_TIMEOUT_BATTERY = 24;
 constexpr uint32_t SAFE_TIMEOUT_VRPN_POSE = 25;
 constexpr uint32_t SAFE_TIMEOUT_VRPN_TWIST = 26;
+constexpr uint32_t SAFE_TIMEOUT_UAV_STATE_ESTIMATE = 27;
+constexpr uint32_t SAFE_UAV_STATE_ESTIMATE_UNUSABLE = 28;
 
 // 通信质量 - dt（帧间隔）
 constexpr uint32_t SAFE_DEGRADED_DT_LOCAL_POS = 30;
@@ -256,18 +259,21 @@ constexpr int DEFAULT = 0;    // 默认优先级
 // 传感器数据（聚合）
 // 包含所有传感器测量值，字段名与 ROS 消息保持一致
 struct SensorData {
-  // 位置 (m) - 来自 nav_msgs/Odometry 或 geometry_msgs/PoseStamped
+  // 控制状态 (m, m/s, quaternion, rad/s) - 来自 estimator_rigid_state/RigidStateEstimate
   double x{0.0}, y{0.0}, z{0.0};
 
-  // 线速度 (m/s) - 来自 nav_msgs/Odometry 的 twist.linear
+  // 线速度 (m/s)
   double vx{0.0}, vy{0.0}, vz{0.0};
 
   // 姿态四元数 - 来自 geometry_msgs/PoseStamped 或 sensor_msgs/Imu
   // 使用四元数避免欧拉角奇异点
   double qx{0.0}, qy{0.0}, qz{0.0}, qw{1.0};
 
-  // 角速度 (rad/s) - 来自 sensor_msgs/Imu 的 angular_velocity
+  // 角速度 (rad/s)
   double wx{0.0}, wy{0.0}, wz{0.0};
+  uint8_t uav_state_estimator_state{0};
+  uint32_t uav_state_estimator_flags{0};
+  double uav_state_estimate_stamp{0.0};
 
   // 悬停推力估计 - 来自 hover_thrust_estimator/hover_thrust/estimate_state
   double hover_thrust_estimate{0.0};
@@ -288,8 +294,13 @@ struct SensorData {
 
   // 话题统计数据
   using TopicStats = ros1_utils::TopicStats;
-  TopicStats local_pos_stats, local_velocity_stats, imu_stats, state_stats,
-      battery_stats;
+  TopicStats uav_state_estimate_stats, local_pos_stats, local_velocity_stats,
+      imu_stats, state_stats, battery_stats;
+
+  // MAVROS 本地位置，仅用于一致性检查/诊断，不作为控制状态源
+  double local_x{0.0}, local_y{0.0}, local_z{0.0};
+  double local_qx{0.0}, local_qy{0.0}, local_qz{0.0}, local_qw{1.0};
+  double local_vx{0.0}, local_vy{0.0}, local_vz{0.0};
 
   // VRPN 原始数据（独立于 mavros）
   // 位置 (m) - 来自 pose 话题

@@ -1,21 +1,28 @@
 #pragma once
 
-#include "multirotor_controller/common/ros_output_runtime.h"
 #include "multirotor_controller/drone_controller.h"
-#include "multirotor_controller/output/output_event_consumer.h"
 
 #include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
+#include <state_machine/runtime/async_task_executor.hpp>
+#include <state_machine/runtime/event_dispatcher.hpp>
+#include <string>
 
 namespace multirotor_controller {
 
-class ReferenceActivationOutputConsumer final : public OutputEventConsumer {
+class ReferenceActivationOutputConsumer final
+    : public ::state_machine::runtime::EventConsumer {
 public:
   ReferenceActivationOutputConsumer(ros::NodeHandle &nh,
-                                    RosOutputExecutor &executor,
+                                    ::state_machine::runtime::
+                                        AsyncTaskExecutor<ros::NodeHandle>
+                                            &executor,
                                     DroneController &controller,
                                     uint32_t queue_size);
 
+  std::string name() const override {
+    return "ReferenceActivationOutputConsumer";
+  }
   bool handle(const ::state_machine::Event &event) override;
 
 private:
@@ -23,7 +30,7 @@ private:
   makeActivationMessage(const ::state_machine::Event &event,
                         const SensorData &sensor);
 
-  RosOutputExecutor &executor_;
+  ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor_;
   DroneController &controller_;
   ros::Publisher activation_pub_;
 };

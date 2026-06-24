@@ -1,6 +1,7 @@
 #pragma once
 
 #include "multirotor_controller/common/types.h"
+#include <estimator_rigid_state/RigidStateEstimate.h>
 #include <ros1_utils/param_utils.h>
 #include <ros1_utils/topic_stats.h>
 
@@ -27,11 +28,14 @@ public:
                       std::function<void()> on_state_message);
 
   void setVrpnQualityConfig(const ros1_utils::PositionQualityConfig &config);
+  void setStateEstimateTopic(std::string state_estimate_topic);
   void setVrpnTopics(std::string pose_topic, std::string twist_topic);
   void start();
   void resetNewFlags();
 
 private:
+  void stateEstimateCallback(
+      const estimator_rigid_state::RigidStateEstimate::ConstPtr &msg);
   void localPosCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
   void velocityCallback(const geometry_msgs::TwistStamped::ConstPtr &msg);
   void imuCallback(const sensor_msgs::Imu::ConstPtr &msg);
@@ -49,6 +53,7 @@ private:
   std::function<void()> on_state_message_;
   ros1_utils::TopicStatsManager stats_manager_;
   ros1_utils::PositionQualityDetector vrpn_quality_detector_;
+  std::string state_estimate_topic_{"alg/state_estimator/state"};
   std::string vrpn_pose_topic_{"pose"};
   std::string vrpn_twist_topic_{"twist"};
   bool started_{false};

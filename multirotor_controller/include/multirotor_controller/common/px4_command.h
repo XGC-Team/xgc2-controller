@@ -9,7 +9,7 @@
 #include <mavros_msgs/CommandLong.h>
 #include <mavros_msgs/SetMode.h>
 
-#include "multirotor_controller/common/ros_output_runtime.h"
+#include <state_machine/runtime/async_task_executor.hpp>
 
 namespace multirotor_controller {
 
@@ -48,7 +48,8 @@ inline bool sendArmDisarmCommand(ros::ServiceClient *client, bool arm,
 
 } // namespace detail
 
-class ArmOutputTask : public RosOutputTask {
+class ArmOutputTask
+    : public ::state_machine::runtime::Task<ros::NodeHandle> {
 public:
   ArmOutputTask(bool arm, ros::ServiceClient *client)
       : arm_(arm), client_(client) {}
@@ -65,7 +66,8 @@ private:
   ros::ServiceClient *client_;
 };
 
-class KillOutputTask : public RosOutputTask {
+class KillOutputTask
+    : public ::state_machine::runtime::Task<ros::NodeHandle> {
 public:
   explicit KillOutputTask(ros::ServiceClient *client) : client_(client) {}
 
@@ -80,7 +82,8 @@ private:
   ros::ServiceClient *client_;
 };
 
-class SetModeOutputTask : public RosOutputTask {
+class SetModeOutputTask
+    : public ::state_machine::runtime::Task<ros::NodeHandle> {
 public:
   SetModeOutputTask(std::string mode, ros::ServiceClient *client)
       : mode_(std::move(mode)), client_(client) {}

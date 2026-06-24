@@ -10,9 +10,10 @@ namespace multirotor_controller {
 namespace {
 
 template <typename Message>
-std::unique_ptr<RosOutputTask>
+std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>>
 makePublishTask(std::string name, ros::Publisher pub, Message msg) {
-  return std::make_unique<RosLambdaOutputTask>(
+  return std::make_unique<
+      ::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
       std::move(name), [pub = std::move(pub), msg = std::move(msg)](
                            ros::NodeHandle &) mutable { pub.publish(msg); });
 }
@@ -24,7 +25,8 @@ double finiteOr(double value, double fallback) {
 } // namespace
 
 ReferenceActivationOutputConsumer::ReferenceActivationOutputConsumer(
-    ros::NodeHandle &nh, RosOutputExecutor &executor,
+    ros::NodeHandle &nh,
+    ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor,
     DroneController &controller, uint32_t queue_size)
     : executor_(executor), controller_(controller) {
   activation_pub_ = nh.advertise<geometry_msgs::PoseStamped>(
@@ -50,31 +52,19 @@ bool ReferenceActivationOutputConsumer::handle(
 geometry_msgs::PoseStamped
 ReferenceActivationOutputConsumer::makeActivationMessage(
     const ::state_machine::Event &event, const SensorData &sensor) {
-  const bool use_vrpn = sensor.vrpn_pose_stats.is_active;
-
   geometry_msgs::PoseStamped msg;
   const double stamp =
       event.timestamp > 0.0 ? event.timestamp : ros::Time::now().toSec();
   msg.header.stamp = ros::Time(stamp);
   msg.header.frame_id = "map";
 
-  if (use_vrpn) {
-    msg.pose.position.x = finiteOr(sensor.vrpn_x, 0.0);
-    msg.pose.position.y = finiteOr(sensor.vrpn_y, 0.0);
-    msg.pose.position.z = finiteOr(sensor.vrpn_z, 0.0);
-    msg.pose.orientation.x = finiteOr(sensor.vrpn_qx, 0.0);
-    msg.pose.orientation.y = finiteOr(sensor.vrpn_qy, 0.0);
-    msg.pose.orientation.z = finiteOr(sensor.vrpn_qz, 0.0);
-    msg.pose.orientation.w = finiteOr(sensor.vrpn_qw, 1.0);
-  } else {
-    msg.pose.position.x = finiteOr(sensor.x, 0.0);
-    msg.pose.position.y = finiteOr(sensor.y, 0.0);
-    msg.pose.position.z = finiteOr(sensor.z, 0.0);
-    msg.pose.orientation.x = finiteOr(sensor.qx, 0.0);
-    msg.pose.orientation.y = finiteOr(sensor.qy, 0.0);
-    msg.pose.orientation.z = finiteOr(sensor.qz, 0.0);
-    msg.pose.orientation.w = finiteOr(sensor.qw, 1.0);
-  }
+  msg.pose.position.x = finiteOr(sensor.x, 0.0);
+  msg.pose.position.y = finiteOr(sensor.y, 0.0);
+  msg.pose.position.z = finiteOr(sensor.z, 0.0);
+  msg.pose.orientation.x = finiteOr(sensor.qx, 0.0);
+  msg.pose.orientation.y = finiteOr(sensor.qy, 0.0);
+  msg.pose.orientation.z = finiteOr(sensor.qz, 0.0);
+  msg.pose.orientation.w = finiteOr(sensor.qw, 1.0);
 
   const double q_norm =
       std::sqrt(msg.pose.orientation.x * msg.pose.orientation.x +

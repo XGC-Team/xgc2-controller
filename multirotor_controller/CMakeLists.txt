@@ -17,6 +17,7 @@ set(MULTIROTOR_CONTROLLER_CATKIN_COMPONENTS
   mavros_msgs
   reference_trajectory
   hover_thrust_estimator
+  estimator_rigid_state
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -273,7 +274,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp std_msgs message_runtime geometry_msgs nav_msgs sensor_msgs mavros_msgs ros1_utils reference_trajectory hover_thrust_estimator
+  CATKIN_DEPENDS roscpp std_msgs message_runtime geometry_msgs nav_msgs sensor_msgs mavros_msgs ros1_utils reference_trajectory hover_thrust_estimator estimator_rigid_state
 )
 
 ###########
@@ -283,11 +284,12 @@ catkin_package(
 ## Specify additional locations of header files
 include_directories(
   BEFORE
+  include
+  "${CATKIN_DEVEL_PREFIX}/include"
   ${MULTIROTOR_HOVER_THRUST_INCLUDE_DIRS}
 )
 
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${MULTIROTOR_UAV_NMPC_GENERATED_DIR}
@@ -322,6 +324,10 @@ add_library(multirotor_controller_uav_nmpc_runtime
   src/nmpc/uav_nmpc_solver.cpp
   src/uav/nmpc_tracking_backend.cpp
 )
+target_include_directories(multirotor_controller_uav_nmpc_runtime BEFORE PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CATKIN_DEVEL_PREFIX}/include
+)
 add_dependencies(multirotor_controller_uav_nmpc_runtime ${catkin_EXPORTED_TARGETS})
 add_dependencies(multirotor_controller_uav_nmpc_runtime multirotor_controller_uav_nmpc_generated)
 target_link_libraries(multirotor_controller_uav_nmpc_runtime
@@ -345,7 +351,6 @@ add_executable(${PROJECT_NAME}_node
   src/output/control_output_consumer.cpp
   src/output/debug_output_consumer.cpp
   src/output/nmpc_output_consumer.cpp
-  src/output/output_event_consumer.cpp
   src/output/px4_service_output_consumer.cpp
   src/output/reference_activation_output_consumer.cpp
   src/uav/nmpc_result_buffer.cpp
@@ -364,6 +369,8 @@ add_executable(${PROJECT_NAME}_node
 )
 
 target_include_directories(${PROJECT_NAME}_node BEFORE PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CATKIN_DEVEL_PREFIX}/include
   ${MULTIROTOR_HOVER_THRUST_INCLUDE_DIRS}
 )
 
@@ -419,6 +426,11 @@ if(CATKIN_ENABLE_TESTING)
     src/uav/reference_trajectory_buffer.cpp
   )
   if(TARGET multirotor_controller_nmpc_event_runtime_test)
+    target_include_directories(multirotor_controller_nmpc_event_runtime_test
+      BEFORE PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+      ${CATKIN_DEVEL_PREFIX}/include
+    )
     add_dependencies(multirotor_controller_nmpc_event_runtime_test
       ${catkin_EXPORTED_TARGETS}
     )

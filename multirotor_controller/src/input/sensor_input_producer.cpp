@@ -19,6 +19,18 @@ void SensorInputProducer::setVrpnQualityConfig(
   vrpn_quality_detector_.setConfig(config);
 }
 
+void SensorInputProducer::setStateEstimateTopic(
+    std::string state_estimate_topic) {
+  if (started_) {
+    ROS_WARN("[SensorInputProducer] Ignoring UAV state estimate topic change "
+             "after start");
+    return;
+  }
+  if (!state_estimate_topic.empty()) {
+    state_estimate_topic_ = std::move(state_estimate_topic);
+  }
+}
+
 void SensorInputProducer::setVrpnTopics(std::string pose_topic,
                                         std::string twist_topic) {
   if (started_) {
@@ -38,6 +50,10 @@ void SensorInputProducer::start() {
     return;
   }
 
+  stats_manager_.register_topic<estimator_rigid_state::RigidStateEstimate>(
+      nh_, state_estimate_topic_, queue_size_,
+      &SensorInputProducer::stateEstimateCallback, this,
+      &sensor_data_.uav_state_estimate_stats);
   stats_manager_.register_topic<geometry_msgs::PoseStamped>(
       nh_, "mavros/local_position/pose", queue_size_,
       &SensorInputProducer::localPosCallback, this,
@@ -71,31 +87,50 @@ void SensorInputProducer::resetNewFlags() { stats_manager_.resetNewFlags(); }
 
 void SensorInputProducer::localPosCallback(
     const geometry_msgs::PoseStamped::ConstPtr &msg) {
-  sensor_data_.x = msg->pose.position.x;
-  sensor_data_.y = msg->pose.position.y;
-  sensor_data_.z = msg->pose.position.z;
-  sensor_data_.qx = msg->pose.orientation.x;
-  sensor_data_.qy = msg->pose.orientation.y;
-  sensor_data_.qz = msg->pose.orientation.z;
-  sensor_data_.qw = msg->pose.orientation.w;
+  sensor_data_.local_x = msg->pose.position.x;
+  sensor_data_.local_y = msg->pose.position.y;
+  sensor_data_.local_z = msg->pose.position.z;
+  sensor_data_.local_qx = msg->pose.orientation.x;
+  sensor_data_.local_qy = msg->pose.orientation.y;
+  sensor_data_.local_qz = msg->pose.orientation.z;
+  sensor_data_.local_qw = msg->pose.orientation.w;
   postInputEvent(event_type::INPUT_LOCAL_POSITION_UPDATED,
                  "mavros/local_position/pose");
 }
 
 void SensorInputProducer::velocityCallback(
     const geometry_msgs::TwistStamped::ConstPtr &msg) {
-  sensor_data_.vx = msg->twist.linear.x;
-  sensor_data_.vy = msg->twist.linear.y;
-  sensor_data_.vz = msg->twist.linear.z;
+  sensor_data_.local_vx = msg->twist.linear.x;
+  sensor_data_.local_vy = msg->twist.linear.y;
+  sensor_data_.local_vz = msg->twist.linear.z;
   postInputEvent(event_type::INPUT_LOCAL_VELOCITY_UPDATED,
                  "mavros/local_position/velocity_local");
 }
 
 void SensorInputProducer::imuCallback(const sensor_msgs::Imu::ConstPtr &msg) {
+  postInputEvent(event_type::INPUT_IMU_UPDATED, "mavros/imu/data");
+}
+
+void SensorInputProducer::stateEstimateCallback(
+    const estimator_rigid_state::RigidStateEstimate::ConstPtr &msg) {
+  sensor_data_.x = msg->position.x;
+  sensor_data_.y = msg->position.y;
+  sensor_data_.z = msg->position.z;
+  sensor_data_.vx = msg->velocity.x;
+  sensor_data_.vy = msg->velocity.y;
+  sensor_data_.vz = msg->velocity.z;
+  sensor_data_.qx = msg->orientation.x;
+  sensor_data_.qy = msg->orientation.y;
+  sensor_data_.qz = msg->orientation.z;
+  sensor_data_.qw = msg->orientation.w;
   sensor_data_.wx = msg->angular_velocity.x;
   sensor_data_.wy = msg->angular_velocity.y;
   sensor_data_.wz = msg->angular_velocity.z;
-  postInputEvent(event_type::INPUT_IMU_UPDATED, "mavros/imu/data");
+  sensor_data_.uav_state_estimator_state = msg->estimator_state;
+  sensor_data_.uav_state_estimator_flags = msg->flags;
+  sensor_data_.uav_state_estimate_stamp = msg->header.stamp.toSec();
+  postInputEvent(event_type::INPUT_UAV_STATE_ESTIMATE_UPDATED,
+                 "alg/state_estimator/state");
 }
 
 void SensorInputProducer::stateCallback(

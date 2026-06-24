@@ -1,4 +1,5 @@
 #include "multirotor_controller/uav/state_machine/health_monitor_state.h"
+#include "multirotor_controller/common/sensor_checks.h"
 #include "multirotor_controller/drone_controller.h"
 
 #include <cmath>
@@ -18,22 +19,23 @@ HealthMonitorState::onTick(::state_machine::StateContext &ctx) {
   const auto &cfg = controller_config.safety;
   auto &ss = safety_state_;
 
-  checkSensorActiveEdge(ctx, sd.local_pos_stats, ss.was_local_pos_active,
-                        SAFE_TIMEOUT_LOCAL_POS);
-  checkSensorActiveEdge(ctx, sd.local_velocity_stats,
-                        ss.was_local_velocity_active,
-                        SAFE_TIMEOUT_LOCAL_VELOCITY);
-  checkSensorActiveEdge(ctx, sd.imu_stats, ss.was_imu_active, SAFE_TIMEOUT_IMU);
+  checkSensorActiveEdge(ctx, sd.uav_state_estimate_stats,
+                        ss.was_uav_state_estimate_active,
+                        SAFE_TIMEOUT_UAV_STATE_ESTIMATE);
   checkSensorActiveEdge(ctx, sd.state_stats, ss.was_state_active,
                         SAFE_TIMEOUT_STATE);
   checkSensorActiveEdge(ctx, sd.battery_stats, ss.was_battery_active,
                         SAFE_TIMEOUT_BATTERY);
-  checkSensorActiveEdge(ctx, sd.vrpn_pose_stats, ss.was_vrpn_pose_active,
-                        SAFE_TIMEOUT_VRPN_POSE);
-  checkSensorActiveEdge(ctx, sd.vrpn_twist_stats, ss.was_vrpn_twist_active,
-                        SAFE_TIMEOUT_VRPN_TWIST);
 
-  if (sd.local_pos_stats.is_new) {
+  const bool estimate_unusable = sd.uav_state_estimate_stats.is_active &&
+                                 !sensor_checks::isStateEstimateUsableForControl(sd);
+  if (!ss.state_estimate_unusable && estimate_unusable) {
+    postSafetyEvent(ctx, SAFE_UAV_STATE_ESTIMATE_UNUSABLE,
+                    "post state estimate unusable safety event");
+  }
+  ss.state_estimate_unusable = estimate_unusable;
+
+  if (sd.uav_state_estimate_stats.is_new) {
     const bool currently_violated =
         (sd.x < cfg.fence_x_min || sd.x > cfg.fence_x_max ||
          sd.y < cfg.fence_y_min || sd.y > cfg.fence_y_max ||
@@ -45,26 +47,7 @@ HealthMonitorState::onTick(::state_machine::StateContext &ctx) {
     ss.geofence_violated = currently_violated;
   }
 
-  if (sd.vrpn_pose_stats.is_new) {
-    if (ss.has_last_position) {
-      const double dx = sd.vrpn_x - ss.last_x;
-      const double dy = sd.vrpn_y - ss.last_y;
-      const double dz = sd.vrpn_z - ss.last_z;
-      const double position_jump = std::sqrt(dx * dx + dy * dy + dz * dz);
-      const bool jump_detected = position_jump > cfg.position_jump_threshold;
-      if (!ss.position_jump_detected && jump_detected) {
-        postSafetyEvent(ctx, SAFE_POSITION_JUMP, "post position jump event");
-      }
-      ss.position_jump_detected = jump_detected;
-    }
-
-    ss.last_x = sd.vrpn_x;
-    ss.last_y = sd.vrpn_y;
-    ss.last_z = sd.vrpn_z;
-    ss.has_last_position = true;
-  }
-
-  if (sd.local_velocity_stats.is_new) {
+  if (sd.uav_state_estimate_stats.is_new) {
     const double velocity_xy = std::sqrt(sd.vx * sd.vx + sd.vy * sd.vy);
     const bool xy_exceeded = velocity_xy > cfg.max_velocity_xy;
     if (!ss.velocity_xy_exceeded && xy_exceeded) {

@@ -1,30 +1,34 @@
 #pragma once
 
-#include "multirotor_controller/common/ros_output_runtime.h"
 #include "multirotor_controller/drone_controller.h"
-#include "multirotor_controller/output/output_event_consumer.h"
 #include <ros1_utils/param_utils.h>
 #include <ros1_utils/topic_stats.h>
 
 #include <ros/ros.h>
+#include <state_machine/runtime/async_task_executor.hpp>
+#include <state_machine/runtime/event_dispatcher.hpp>
+#include <string>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/String.h>
 #include <std_msgs/UInt32MultiArray.h>
 
 namespace multirotor_controller {
 
-class DebugOutputConsumer final : public OutputEventConsumer {
+class DebugOutputConsumer final : public ::state_machine::runtime::EventConsumer {
 public:
   DebugOutputConsumer(
-      ros::NodeHandle &nh, RosOutputExecutor &executor,
+      ros::NodeHandle &nh,
+      ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor,
       DroneController &controller, const SensorData &sensor_data,
       const ros1_utils::PositionQualityStats &vrpn_quality_stats,
       const bool &debug_print_enabled, uint32_t queue_size);
 
+  std::string name() const override { return "DebugOutputConsumer"; }
   bool handle(const ::state_machine::Event &event) override;
 
 private:
   struct SensorStatsSnapshot {
+    SensorData::TopicStats state_estimate;
     SensorData::TopicStats local_pos;
     SensorData::TopicStats local_velocity;
     SensorData::TopicStats imu;
@@ -45,7 +49,7 @@ private:
   std_msgs::Float32MultiArray snapshotTrackingError() const;
   std_msgs::UInt32MultiArray snapshotStateMachineEvents() const;
 
-  RosOutputExecutor &executor_;
+  ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle> &executor_;
   DroneController &controller_;
   const SensorData &sensor_data_;
   const ros1_utils::PositionQualityStats &vrpn_quality_stats_;
@@ -53,6 +57,7 @@ private:
 
   ros::Publisher controller_status_pub_;
   ros::Publisher events_pub_;
+  ros::Publisher stats_state_estimate_pub_;
   ros::Publisher stats_local_pos_pub_;
   ros::Publisher stats_local_vel_pub_;
   ros::Publisher stats_imu_pub_;

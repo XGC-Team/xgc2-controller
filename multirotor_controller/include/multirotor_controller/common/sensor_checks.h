@@ -2,6 +2,7 @@
 
 #include "multirotor_controller/common/types.h"
 
+#include <estimator_rigid_state/RigidStateEstimate.h>
 #include <cmath>
 
 namespace multirotor_controller {
@@ -10,8 +11,7 @@ namespace sensor_checks {
 constexpr double kAirborneAltitudeThreshold = 0.3;
 
 inline bool areBaseSensorsActive(const SensorData &sensor) {
-  return sensor.local_pos_stats.is_active &&
-         sensor.local_velocity_stats.is_active && sensor.imu_stats.is_active &&
+  return sensor.uav_state_estimate_stats.is_active &&
          sensor.state_stats.is_active && sensor.battery_stats.is_active;
 }
 
@@ -20,9 +20,9 @@ inline bool areVrpnTopicsActive(const SensorData &sensor) {
 }
 
 inline double vrpnLocalPositionDiff(const SensorData &sensor) {
-  const double dx = sensor.vrpn_x - sensor.x;
-  const double dy = sensor.vrpn_y - sensor.y;
-  const double dz = sensor.vrpn_z - sensor.z;
+  const double dx = sensor.vrpn_x - sensor.local_x;
+  const double dy = sensor.vrpn_y - sensor.local_y;
+  const double dz = sensor.vrpn_z - sensor.local_z;
   return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -31,9 +31,27 @@ inline bool isVrpnPoseConsistent(const SensorData &sensor,
   return vrpnLocalPositionDiff(sensor) < position_tolerance;
 }
 
+inline bool isStateEstimateUsableForControl(const SensorData &sensor) {
+  constexpr uint32_t kBlockingFlags =
+      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_MISSING |
+      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_STALE |
+      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_RATE_LOW |
+      estimator_rigid_state::RigidStateEstimate::FLAG_TIME_JUMP |
+      estimator_rigid_state::RigidStateEstimate::FLAG_FAULT |
+      estimator_rigid_state::RigidStateEstimate::FLAG_EXTRINSIC_UNVERIFIED |
+      estimator_rigid_state::RigidStateEstimate::FLAG_COVARIANCE_HIGH |
+      estimator_rigid_state::RigidStateEstimate::FLAG_INVALID_IMU;
+  const bool state_ok =
+      sensor.uav_state_estimator_state ==
+          estimator_rigid_state::RigidStateEstimate::STATE_RUNNING ||
+      sensor.uav_state_estimator_state ==
+          estimator_rigid_state::RigidStateEstimate::STATE_COASTING;
+  return sensor.uav_state_estimate_stats.is_active && state_ok &&
+         (sensor.uav_state_estimator_flags & kBlockingFlags) == 0u;
+}
+
 inline bool areSensorsAllActive(const SensorData &sensor) {
-  return areBaseSensorsActive(sensor) && areVrpnTopicsActive(sensor) &&
-         isVrpnPoseConsistent(sensor);
+  return areBaseSensorsActive(sensor) && isStateEstimateUsableForControl(sensor);
 }
 
 inline bool isFcuConnected(const SensorData &sensor) {

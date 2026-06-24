@@ -9,6 +9,7 @@ set -u
 
 dpkg -s "ros-${ROS_DISTRO}-xgc2-controller" >/dev/null
 dpkg -s "ros-${ROS_DISTRO}-xgc2-estimator-hover-thrust" >/dev/null
+dpkg -s "ros-${ROS_DISTRO}-xgc2-estimator-rigid-state" >/dev/null
 dpkg -s "ros-${ROS_DISTRO}-xgc2-ros1-utils" >/dev/null
 dpkg -s libxgc2-state-machine-dev >/dev/null
 dpkg -s libxgc2-geometry-dev >/dev/null
@@ -17,6 +18,7 @@ xgc2_acados_version="$(dpkg-query -W -f='${Version}' xgc2-acados)"
 dpkg --compare-versions "${xgc2_acados_version}" ge "0.1.0-3~focal"
 test "$(rospack find reference_trajectory)" = "/opt/ros/${ROS_DISTRO}/share/reference_trajectory"
 test "$(rospack find multirotor_controller)" = "/opt/ros/${ROS_DISTRO}/share/multirotor_controller"
+test "$(rospack find estimator_rigid_state)" = "/opt/ros/${ROS_DISTRO}/share/estimator_rigid_state"
 test -f "/opt/ros/${ROS_DISTRO}/share/reference_trajectory/config/uav_reference_circle_entry.yaml"
 test -f "/opt/ros/${ROS_DISTRO}/share/reference_trajectory/launch/uav_reference_trajectory.launch"
 test -f "/opt/ros/${ROS_DISTRO}/include/reference_trajectory/nmpc_reference_trajectory.h"

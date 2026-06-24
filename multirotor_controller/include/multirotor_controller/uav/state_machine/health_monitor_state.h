@@ -19,6 +19,7 @@ protected:
 
 private:
   struct SafetyState {
+    bool was_uav_state_estimate_active{false};
     bool was_local_pos_active{false};
     bool was_local_velocity_active{false};
     bool was_imu_active{false};
@@ -27,17 +28,12 @@ private:
     bool was_vrpn_pose_active{false};
     bool was_vrpn_twist_active{false};
 
-    double last_x{0.0};
-    double last_y{0.0};
-    double last_z{0.0};
-    bool has_last_position{false};
-
     bool geofence_violated{false};
     bool velocity_xy_exceeded{false};
     bool velocity_z_exceeded{false};
     bool control_saturated_xy{false};
     bool control_saturated_z{false};
-    bool position_jump_detected{false};
+    bool state_estimate_unusable{false};
   };
 
   void postSafetyEvent(::state_machine::StateContext &ctx,

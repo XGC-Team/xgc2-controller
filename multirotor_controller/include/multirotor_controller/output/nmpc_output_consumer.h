@@ -1,17 +1,18 @@
 #pragma once
 
 #include "multirotor_controller/drone_controller.h"
-#include "multirotor_controller/output/output_event_consumer.h"
 #include "multirotor_controller/uav/nmpc_tracking_backend.h"
 
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <state_machine/runtime/event_dispatcher.hpp>
+#include <string>
 #include <thread>
 
 namespace multirotor_controller {
 
-class NmpcOutputConsumer final : public OutputEventConsumer {
+class NmpcOutputConsumer final : public ::state_machine::runtime::EventConsumer {
 public:
   using EventSink =
       std::function<::state_machine::Status(::state_machine::Event)>;
@@ -19,6 +20,7 @@ public:
   NmpcOutputConsumer(DroneController &controller, EventSink event_sink);
   ~NmpcOutputConsumer() override;
 
+  std::string name() const override { return "NmpcOutputConsumer"; }
   bool handle(const ::state_machine::Event &event) override;
 
 private:

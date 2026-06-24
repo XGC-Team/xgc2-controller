@@ -55,7 +55,7 @@ void TakeoffAscendingState::logStatusIfDue() {
   controller_.logInfo(
       "[TakeoffAscendingState] Altitude: %.2f m (target: %.2f m, vz: "
       "%.2f m/s, settled frames: %d/%d)",
-      sensor_data.vrpn_z, setpoint.z, sensor_data.vrpn_vz,
+      sensor_data.z, setpoint.z, sensor_data.vz,
       confirmed_settled_frames_, CONSECUTIVE_SETTLED_FRAMES);
   status_log_timer_.reset();
 }
@@ -90,15 +90,15 @@ void TakeoffAscendingState::updateAltitudeConfirmation() {
 
   const auto &sensor_data = controller_.getSensorData();
   const bool sensor_updated =
-      sensor_data.vrpn_pose_stats.is_new || sensor_data.vrpn_twist_stats.is_new;
+      sensor_data.uav_state_estimate_stats.is_new;
   if (!sensor_updated) {
     return;
   }
 
   const auto &setpoint = controller_.getSetpoint();
   const bool altitude_ok =
-      sensor_data.vrpn_z >= setpoint.z - ALTITUDE_THRESHOLD;
-  const bool velocity_ok = std::abs(sensor_data.vrpn_vz) < VELOCITY_THRESHOLD;
+      sensor_data.z >= setpoint.z - ALTITUDE_THRESHOLD;
+  const bool velocity_ok = std::abs(sensor_data.vz) < VELOCITY_THRESHOLD;
   if (!altitude_ok || !velocity_ok) {
     confirmed_settled_frames_ = 0;
     return;
@@ -120,7 +120,7 @@ void TakeoffAscendingState::postAltitudeReachedOnce(
   controller_.logInfo(
       "[TakeoffAscendingState] Target altitude reached: %.2f m (%.1f s "
       "elapsed)",
-      sensor_data.vrpn_z,
+      sensor_data.z,
       std::chrono::duration<double>(ctx.elapsed(state_type::TakeoffAscending))
           .count());
   altitude_reached_event_posted_ = true;
@@ -138,7 +138,7 @@ TakeoffAscendingState::onExit(::state_machine::StateContext &ctx) {
   controller_.logInfo(
       "[TakeoffAscendingState] Exiting (altitude: %.2f m, settled frames: "
       "%d/%d, elapsed: %.2f s)",
-      sensor_data.vrpn_z, confirmed_settled_frames_,
+      sensor_data.z, confirmed_settled_frames_,
       CONSECUTIVE_SETTLED_FRAMES, elapsed_time);
   status_log_timer_.stop();
   setpoint_publish_timer_.stop();

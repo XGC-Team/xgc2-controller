@@ -33,15 +33,15 @@ TakeoffInitState::onEnter(::state_machine::StateContext &ctx) {
 
 void TakeoffInitState::configureTakeoffSetpoint() {
   const auto &sensor_data = controller_.getSensorData();
-  initial_altitude_ = sensor_data.vrpn_z;
+  initial_altitude_ = sensor_data.z;
 
   const double configured_target_altitude =
       controller_.getConfig().takeoff_altitude;
   target_altitude_ = std::max(configured_target_altitude, initial_altitude_);
 
   Setpoint &setpoint = controller_.getSetpoint();
-  setpoint.x = sensor_data.vrpn_x;
-  setpoint.y = sensor_data.vrpn_y;
+  setpoint.x = sensor_data.x;
+  setpoint.y = sensor_data.y;
   setpoint.z = target_altitude_;
   setpoint.vx = 0.0;
   setpoint.vy = 0.0;

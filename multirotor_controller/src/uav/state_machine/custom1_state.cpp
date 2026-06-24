@@ -319,14 +319,13 @@ void Custom1State::computeTrackingErrors(const SensorData &sensor_data,
   // 误差定义：实际 - 参考（与论文和MATLAB一致）
   // ė_p = v_actual - v_ref = e_v
   // ė_v = a_actual - a_ref = (u_h + u_f) - u_h = u_f
-  // 使用 VRPN 数据计算跟踪误差
-  e_p << sensor_data.vrpn_x - reference_trajectory_.x,
-      sensor_data.vrpn_y - reference_trajectory_.y,
-      sensor_data.vrpn_z - reference_trajectory_.z;
+  e_p << sensor_data.x - reference_trajectory_.x,
+      sensor_data.y - reference_trajectory_.y,
+      sensor_data.z - reference_trajectory_.z;
 
-  e_v << sensor_data.vrpn_vx - reference_trajectory_.vx,
-      sensor_data.vrpn_vy - reference_trajectory_.vy,
-      sensor_data.vrpn_vz - reference_trajectory_.vz;
+  e_v << sensor_data.vx - reference_trajectory_.vx,
+      sensor_data.vy - reference_trajectory_.vy,
+      sensor_data.vz - reference_trajectory_.vz;
 }
 
 void Custom1State::computeControlOutput() {
