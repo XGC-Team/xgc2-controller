@@ -1,0 +1,86 @@
+#pragma once
+
+#include <Eigen/Dense>
+#include <array>
+#include <vector>
+
+#include "multirotor_reference_trajectory/core/nmpc_reference.h"
+#include "px4_multirotor_controller/nmpc/nmpc_math_utils.h"
+
+extern "C" {
+#include "acados_c/ocp_nlp_interface.h"
+#include "acados_solver_uav_nmpc.h"
+}
+
+namespace px4_multirotor_controller {
+
+using multirotor_reference_trajectory::UavReferenceSample;
+
+class UavNmpcSolver {
+   public:
+    UavNmpcSolver();
+    ~UavNmpcSolver();
+
+    UavNmpcSolver(const UavNmpcSolver&) = delete;
+    UavNmpcSolver& operator=(const UavNmpcSolver&) = delete;
+
+    bool initialize();
+    void resetWarmStart();
+    bool solve(const Vector13d& x0, const std::vector<UavReferenceSample>& references);
+
+    Vector4d optimalControl() const {
+        return optimal_control_;
+    }
+    Eigen::Vector3d predictedBodyRate() const {
+        return predicted_body_rate_;
+    }
+    int status() const {
+        return solver_status_;
+    }
+    double solveTimeMs() const {
+        return solve_time_ms_;
+    }
+    double maxQuaternionNormError() const {
+        return max_quaternion_norm_error_;
+    }
+    bool initialized() const {
+        return initialized_;
+    }
+
+    static constexpr int nx() {
+        return UAV_NMPC_NX;
+    }
+    static constexpr int nu() {
+        return UAV_NMPC_NU;
+    }
+    static constexpr int np() {
+        return UAV_NMPC_NP;
+    }
+    static constexpr int horizonSteps() {
+        return UAV_NMPC_N;
+    }
+
+   private:
+    bool setInitialState(const Vector13d& x0);
+    bool setReference(int stage, const UavReferenceSample& reference);
+    void setGuesses(const Vector13d& x0, const std::vector<UavReferenceSample>& references);
+    void readSolution();
+    void shiftWarmStart(const std::vector<UavReferenceSample>& references);
+    void cleanup();
+
+    uav_nmpc_solver_capsule* capsule_{nullptr};
+    bool initialized_{false};
+    bool have_warm_start_{false};
+    int solver_status_{-1};
+    double solve_time_ms_{0.0};
+    double max_quaternion_norm_error_{0.0};
+
+    std::array<Vector13d, UAV_NMPC_N + 1> x_guess_{};
+    std::array<Vector4d, UAV_NMPC_N> u_guess_{};
+    std::array<Vector13d, UAV_NMPC_N + 1> x_solution_{};
+    std::array<Vector4d, UAV_NMPC_N> u_solution_{};
+    Vector4d optimal_control_{Vector4d::Zero()};
+    Eigen::Vector3d predicted_body_rate_{Eigen::Vector3d::Zero()};
+};
+
+}  // namespace px4_multirotor_controller

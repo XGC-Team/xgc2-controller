@@ -30,7 +30,11 @@ require_command rsync
 
 mapfile -d '' CXX_FILES < <(
   cd "${REPO_ROOT}"
-  find reference_trajectory/include reference_trajectory/src reference_trajectory/test -type f \
+  find px4_multirotor_controller/include px4_multirotor_controller/src px4_multirotor_controller/test \
+       multirotor_reference_trajectory/include multirotor_reference_trajectory/src multirotor_reference_trajectory/test \
+       unicycle_ugv_controller/include unicycle_ugv_controller/src unicycle_ugv_controller/test \
+       unicycle_reference_trajectory/include unicycle_reference_trajectory/src unicycle_reference_trajectory/test \
+    -type f \
     \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" -o \
       -name "*.h" -o -name "*.hpp" -o -name "*.hh" -o -name "*.hxx" \) \
     -print0 | sort -z
@@ -62,14 +66,20 @@ echo "Generating compile_commands.json..."
 
 echo "Running clang-tidy..."
 mapfile -d '' TIDY_FILES < <(
-  find "${WORK_DIR}/src/xgc2-controller/reference_trajectory/src" \
-       "${WORK_DIR}/src/xgc2-controller/reference_trajectory/test" \
+  find "${WORK_DIR}/src/xgc2-controller/px4_multirotor_controller/src" \
+       "${WORK_DIR}/src/xgc2-controller/px4_multirotor_controller/test" \
+       "${WORK_DIR}/src/xgc2-controller/multirotor_reference_trajectory/src" \
+       "${WORK_DIR}/src/xgc2-controller/multirotor_reference_trajectory/test" \
+       "${WORK_DIR}/src/xgc2-controller/unicycle_ugv_controller/src" \
+       "${WORK_DIR}/src/xgc2-controller/unicycle_ugv_controller/test" \
+       "${WORK_DIR}/src/xgc2-controller/unicycle_reference_trajectory/src" \
+       "${WORK_DIR}/src/xgc2-controller/unicycle_reference_trajectory/test" \
     -type f \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" \) \
     -print0 | sort -z
 )
 clang-tidy \
   -p "${WORK_DIR}/build" \
-  -header-filter="^${WORK_DIR}/src/xgc2-controller/reference_trajectory/(include|src|test)/" \
+  -header-filter="^${WORK_DIR}/src/xgc2-controller/(px4_multirotor_controller|multirotor_reference_trajectory|unicycle_ugv_controller|unicycle_reference_trajectory)/(include|src|test)/" \
   -quiet \
   "${TIDY_FILES[@]}"
 

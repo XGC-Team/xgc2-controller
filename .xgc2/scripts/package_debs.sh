@@ -7,8 +7,12 @@ ROS_DISTRO="${ROS_DISTRO:-noetic}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PACKAGE="ros-${ROS_DISTRO}-xgc2-controller"
-CONTROLLER_ROS_PACKAGE="multirotor_controller"
-REFERENCE_ROS_PACKAGE="reference_trajectory"
+ROS_PACKAGES=(
+  px4_multirotor_controller
+  multirotor_reference_trajectory
+  unicycle_ugv_controller
+  unicycle_reference_trajectory
+)
 
 product_version() {
   awk -F': *' '/^version:[[:space:]]*/ {print $2; exit}' "${REPO_ROOT}/.xgc2/product.yml"
@@ -79,10 +83,13 @@ copy_ros_package() {
   copy_path "${PREFIX_ROOT}/lib/python3/dist-packages/${ros_package}" "${pkg_root}"
 }
 
-copy_ros_package "${CONTROLLER_ROS_PACKAGE}"
-copy_ros_package "${REFERENCE_ROS_PACKAGE}"
-copy_path "${PREFIX_ROOT}/lib/libmultirotor_controller_uav_nmpc_runtime.so" "${pkg_root}"
-copy_path "${PREFIX_ROOT}/lib/libreference_trajectory_core.so" "${pkg_root}"
+for ros_package in "${ROS_PACKAGES[@]}"; do
+  copy_ros_package "${ros_package}"
+done
+copy_path "${PREFIX_ROOT}/lib/libpx4_multirotor_controller_uav_nmpc_runtime.so" "${pkg_root}"
+copy_path "${PREFIX_ROOT}/lib/libmultirotor_reference_trajectory_core.so" "${pkg_root}"
+copy_path "${PREFIX_ROOT}/lib/libunicycle_ugv_controller_nmpc_runtime.so" "${pkg_root}"
+copy_path "${PREFIX_ROOT}/lib/libunicycle_reference_trajectory_core.so" "${pkg_root}"
 
 mkdir -p "${pkg_root}/DEBIAN" "${pkg_root}/usr/share/doc/${PACKAGE}"
 cat > "${pkg_root}/DEBIAN/control" <<EOF

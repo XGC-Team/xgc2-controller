@@ -44,20 +44,35 @@ required_files=(
   .xgc2/scripts/package_debs.sh
   .xgc2/scripts/publish_apt_repo.sh
   .xgc2/scripts/setup_xgc2_apt_source.sh
-  multirotor_controller/CMakeLists.txt
-  multirotor_controller/package.xml
-  multirotor_controller/launch/uav_nmpc_controller.launch
-  multirotor_controller/config/uav_nmpc.yaml
-  reference_trajectory/CMakeLists.txt
-  reference_trajectory/package.xml
-  reference_trajectory/msg/AnalyticReference.msg
-  reference_trajectory/msg/WaypointReferenceRequest.msg
-  reference_trajectory/msg/SampledReference.msg
-  reference_trajectory/msg/ActivePolynomialReference.msg
-  reference_trajectory/msg/ReferenceStatus.msg
-  reference_trajectory/include/reference_trajectory/core/trajectory_core.h
-  reference_trajectory/include/reference_trajectory/reference_trajectory_runtime.h
-  reference_trajectory/launch/uav_reference_trajectory.launch
+  px4_multirotor_controller/CMakeLists.txt
+  px4_multirotor_controller/package.xml
+  px4_multirotor_controller/launch/uav_nmpc_controller.launch
+  px4_multirotor_controller/config/uav_nmpc.yaml
+  multirotor_reference_trajectory/CMakeLists.txt
+  multirotor_reference_trajectory/package.xml
+  multirotor_reference_trajectory/msg/AnalyticReference.msg
+  multirotor_reference_trajectory/msg/WaypointReferenceRequest.msg
+  multirotor_reference_trajectory/msg/SampledReference.msg
+  multirotor_reference_trajectory/msg/ActivePolynomialReference.msg
+  multirotor_reference_trajectory/msg/ReferenceStatus.msg
+  multirotor_reference_trajectory/include/multirotor_reference_trajectory/core/trajectory_core.h
+  multirotor_reference_trajectory/include/multirotor_reference_trajectory/multirotor_reference_trajectory_runtime.h
+  multirotor_reference_trajectory/launch/uav_multirotor_reference_trajectory.launch
+  unicycle_ugv_controller/CMakeLists.txt
+  unicycle_ugv_controller/package.xml
+  unicycle_ugv_controller/launch/ugv_unicycle_nmpc_controller.launch
+  unicycle_ugv_controller/config/unicycle_ugv_controller.yaml
+  unicycle_reference_trajectory/CMakeLists.txt
+  unicycle_reference_trajectory/package.xml
+  unicycle_reference_trajectory/msg/AnalyticReference.msg
+  unicycle_reference_trajectory/msg/WaypointReferenceRequest.msg
+  unicycle_reference_trajectory/msg/SampledReference.msg
+  unicycle_reference_trajectory/msg/ActivePolynomialReference.msg
+  unicycle_reference_trajectory/msg/PlanarReferencePoint.msg
+  unicycle_reference_trajectory/msg/ReferenceStatus.msg
+  unicycle_reference_trajectory/include/unicycle_reference_trajectory/core/trajectory_core.h
+  unicycle_reference_trajectory/include/unicycle_reference_trajectory/unicycle_reference_trajectory_runtime.h
+  unicycle_reference_trajectory/launch/ugv_unicycle_reference_trajectory.launch
 )
 
 for file in "${required_files[@]}"; do
@@ -69,24 +84,29 @@ done
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
 grep -Eq '^version: [0-9]+\.[0-9]+\.[0-9]+-[0-9]+$' .xgc2/product.yml
-grep -q "<name>multirotor_controller</name>" multirotor_controller/package.xml
-grep -q "<name>reference_trajectory</name>" reference_trajectory/package.xml
-grep -q "run_tests_reference_trajectory run_tests_multirotor_controller" .github/workflows/build-debs.yml
+grep -q "<name>px4_multirotor_controller</name>" px4_multirotor_controller/package.xml
+grep -q "<name>multirotor_reference_trajectory</name>" multirotor_reference_trajectory/package.xml
+grep -q "<name>unicycle_ugv_controller</name>" unicycle_ugv_controller/package.xml
+grep -q "<name>unicycle_reference_trajectory</name>" unicycle_reference_trajectory/package.xml
+grep -q "run_tests_multirotor_reference_trajectory run_tests_px4_multirotor_controller run_tests_unicycle_reference_trajectory run_tests_unicycle_ugv_controller" .github/workflows/build-debs.yml
 grep -q "check_version_bump.sh --ci" .github/workflows/build-debs.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
-grep -q "REFERENCE_ROS_PACKAGE=\"reference_trajectory\"" .xgc2/scripts/package_debs.sh
+grep -q "px4_multirotor_controller" .xgc2/scripts/package_debs.sh
+grep -q "multirotor_reference_trajectory" .xgc2/scripts/package_debs.sh
+grep -q "unicycle_ugv_controller" .xgc2/scripts/package_debs.sh
+grep -q "unicycle_reference_trajectory" .xgc2/scripts/package_debs.sh
 grep -q "xgc2-acados (>= 0.1.0-3~focal)" .xgc2/product.yml
 grep -q "xgc2-acados (>= 0.1.0-3~focal)" .xgc2/scripts/package_debs.sh
 
 if grep -R --exclude='check_package_compliance.sh' "ros-noetic-xgc2-reference" \
-  .github .xgc2 README.md multirotor_controller reference_trajectory >/dev/null; then
+  .github .xgc2 README.md px4_multirotor_controller multirotor_reference_trajectory unicycle_ugv_controller unicycle_reference_trajectory >/dev/null; then
   echo "Deprecated ros-noetic-xgc2-reference dependency found." >&2
   exit 1
 fi
 
 if grep -R --exclude='check_package_compliance.sh' \
   -E "UavFlatTrajectory|UavBsplineTrajectory|nmpc_reference_trajectory|uav_reference_circle_entry|publish_uav_reference_trajectory|alg/reference_trajectory/(flat|bspline|activate)" \
-  .github .xgc2 README.md multirotor_controller reference_trajectory >/dev/null; then
+  .github .xgc2 README.md px4_multirotor_controller multirotor_reference_trajectory unicycle_ugv_controller unicycle_reference_trajectory >/dev/null; then
   echo "Deprecated reference trajectory interface found." >&2
   exit 1
 fi

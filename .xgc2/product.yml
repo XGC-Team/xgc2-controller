@@ -1,15 +1,17 @@
 schema: xgc2.product.v1
 id: xgc2-controller
 name: XGC2 Controller
-version: 1.1.1-1
+version: 1.2.0-1
 kind: ros1-apt
-summary: ROS1 controller packages for XGC2 robots, including multirotor PX4/MAVROS NMPC control and reference trajectory generation.
+summary: ROS1 controller packages for XGC2 robots, including PX4 multirotor and unicycle UGV NMPC control with reference trajectory generation.
 
 ros:
   distro: noetic
   packages:
-    - multirotor_controller
-    - reference_trajectory
+    - px4_multirotor_controller
+    - multirotor_reference_trajectory
+    - unicycle_ugv_controller
+    - unicycle_reference_trajectory
 
 apt:
   distribution: focal
@@ -31,15 +33,24 @@ usage:
     sudo apt update
     sudo apt install ros-noetic-xgc2-controller
   smoke_test: |
-    roslaunch --files multirotor_controller uav_nmpc_controller.launch
+    roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch
+    roslaunch --files unicycle_ugv_controller ugv_unicycle_nmpc_controller.launch
 
 ownership:
   paths:
-    - /opt/ros/noetic/share/multirotor_controller
-    - /opt/ros/noetic/share/reference_trajectory
-    - /opt/ros/noetic/include/multirotor_controller
-    - /opt/ros/noetic/include/reference_trajectory
-    - /opt/ros/noetic/lib/multirotor_controller
-    - /opt/ros/noetic/lib/reference_trajectory
-    - /opt/ros/noetic/lib/libmultirotor_controller_uav_nmpc_runtime.so
-    - /opt/ros/noetic/lib/libreference_trajectory_core.so
+    - /opt/ros/noetic/share/px4_multirotor_controller
+    - /opt/ros/noetic/share/multirotor_reference_trajectory
+    - /opt/ros/noetic/share/unicycle_ugv_controller
+    - /opt/ros/noetic/share/unicycle_reference_trajectory
+    - /opt/ros/noetic/include/px4_multirotor_controller
+    - /opt/ros/noetic/include/multirotor_reference_trajectory
+    - /opt/ros/noetic/include/unicycle_ugv_controller
+    - /opt/ros/noetic/include/unicycle_reference_trajectory
+    - /opt/ros/noetic/lib/px4_multirotor_controller
+    - /opt/ros/noetic/lib/multirotor_reference_trajectory
+    - /opt/ros/noetic/lib/unicycle_ugv_controller
+    - /opt/ros/noetic/lib/unicycle_reference_trajectory
+    - /opt/ros/noetic/lib/libpx4_multirotor_controller_uav_nmpc_runtime.so
+    - /opt/ros/noetic/lib/libmultirotor_reference_trajectory_core.so
+    - /opt/ros/noetic/lib/libunicycle_ugv_controller_nmpc_runtime.so
+    - /opt/ros/noetic/lib/libunicycle_reference_trajectory_core.so

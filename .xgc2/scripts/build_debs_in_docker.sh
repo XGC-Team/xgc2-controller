@@ -63,6 +63,7 @@ docker run --rm \
       libeigen3-dev \
       libxgc2-math-dev \
       libxgc2-state-machine-dev \
+      python3-numpy \
       rsync \
       xgc2-acados \
       ros-noetic-geometry-msgs \
@@ -89,7 +90,11 @@ docker run --rm \
     set +u
     source /opt/ros/noetic/setup.bash
     set -u
-    catkin_make run_tests_reference_trajectory run_tests_multirotor_controller
+    PYTHONPATH=/workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools \
+      python3 -B -m unittest discover \
+        -s /workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools/unicycle_nmpc/tests \
+        -v
+    catkin_make run_tests_multirotor_reference_trajectory run_tests_px4_multirotor_controller run_tests_unicycle_reference_trajectory run_tests_unicycle_ugv_controller
     catkin_test_results
     DESTDIR=/workspace/work/install-root catkin_make install \
       -DCMAKE_INSTALL_PREFIX=/opt/ros/noetic \
