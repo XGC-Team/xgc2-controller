@@ -61,10 +61,16 @@ echo "Generating compile_commands.json..."
 )
 
 echo "Running clang-tidy..."
+mapfile -d '' TIDY_FILES < <(
+  find "${WORK_DIR}/src/xgc2-controller/reference_trajectory/src" \
+       "${WORK_DIR}/src/xgc2-controller/reference_trajectory/test" \
+    -type f \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" \) \
+    -print0 | sort -z
+)
 clang-tidy \
   -p "${WORK_DIR}/build" \
   -header-filter="^${WORK_DIR}/src/xgc2-controller/reference_trajectory/(include|src|test)/" \
   -quiet \
-  "${WORK_DIR}/src/xgc2-controller/reference_trajectory/src/nmpc_reference_trajectory.cpp"
+  "${TIDY_FILES[@]}"
 
 echo "C++ quality check passed"

@@ -61,7 +61,7 @@ docker run --rm \
       file \
       git \
       libeigen3-dev \
-      libxgc2-geometry-dev \
+      libxgc2-math-dev \
       libxgc2-state-machine-dev \
       rsync \
       xgc2-acados \

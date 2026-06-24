@@ -1,30 +1,25 @@
 #include <gtest/gtest.h>
 
-#include <vector>
+#include "reference_trajectory/core/trajectory_core.h"
 
-#include "reference_trajectory/nmpc_reference_trajectory.h"
-
-TEST(ReferenceTrajectorySmoke, AllUavTrajectoryIdsSampleFiniteValues) {
-    reference_trajectory::UavReferenceConfig config;
-    reference_trajectory::UavReferenceGenerator generator(config);
-
-    for (int trajectory_id = 1; trajectory_id <= 6; ++trajectory_id) {
-        config.trajectory_id = trajectory_id;
-        generator.setConfig(config);
-        const reference_trajectory::UavReferenceSample sample = generator.sample(0.5);
-        EXPECT_TRUE(sample.x.allFinite()) << trajectory_id;
-        EXPECT_TRUE(sample.u.allFinite()) << trajectory_id;
+TEST(ReferenceTrajectorySmoke, AnalyticTypesSampleFiniteValues) {
+    for (const auto type : {reference_trajectory::core::AnalyticType::kHold,
+                            reference_trajectory::core::AnalyticType::kCircle,
+                            reference_trajectory::core::AnalyticType::kHeightCircle,
+                            reference_trajectory::core::AnalyticType::kCircleEntry,
+                            reference_trajectory::core::AnalyticType::kFigureEight}) {
+        reference_trajectory::core::AnalyticParameters params;
+        params.type = type;
+        params.radius = 3.0;
+        params.line_speed = 3.0;
+        params.height = 3.0;
+        params.z_amplitude = 1.0;
+        params.z_frequency = 0.5;
+        reference_trajectory::core::AnalyticEvaluator evaluator(params);
+        reference_trajectory::core::FlatOutput output;
+        EXPECT_TRUE(evaluator.evaluate(0.5, output));
+        EXPECT_TRUE(reference_trajectory::core::TrajectoryValidator::finite(output));
     }
-}
-
-TEST(ReferenceTrajectorySmoke, UnknownUgvTypeFallsBackToZeroCommand) {
-    reference_trajectory::UgvReferenceConfig config;
-    config.type = "unsupported";
-    const reference_trajectory::UgvReferenceSample sample =
-        reference_trajectory::UgvReferenceGenerator(config).sample(1.0);
-
-    EXPECT_TRUE(sample.x.isZero(0.0));
-    EXPECT_TRUE(sample.u.isZero(0.0));
 }
 
 int main(int argc, char** argv) {

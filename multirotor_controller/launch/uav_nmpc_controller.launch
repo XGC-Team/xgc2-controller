@@ -19,6 +19,14 @@
     <arg name="max_velocity_z" default="1000.0"/>
     <arg name="acc_saturation_xy" default="1000.0"/>
     <arg name="acc_saturation_z" default="1000.0"/>
+    <arg name="reference_start_delay" default="0.2"/>
+    <arg name="reference_duration" default="60.0"/>
+    <arg name="reference_radius" default="3.0"/>
+    <arg name="reference_line_speed" default="3.0"/>
+    <arg name="reference_height" default="3.0"/>
+    <arg name="reference_z_amplitude" default="1.0"/>
+    <arg name="reference_z_frequency" default="0.5"/>
+    <arg name="reference_entry_duration" default="5.0"/>
     <arg name="config_file" default="$(find multirotor_controller)/config/uav_nmpc.yaml"/>
     <arg name="hover_thrust_config_file" default=""/>
 
@@ -54,6 +62,14 @@
             <param name="max_velocity_z" value="$(arg max_velocity_z)"/>
             <param name="acc_saturation_xy" value="$(arg acc_saturation_xy)"/>
             <param name="acc_saturation_z" value="$(arg acc_saturation_z)"/>
+            <param name="nmpc/reference_start_delay" value="$(arg reference_start_delay)"/>
+            <param name="nmpc/reference_duration" value="$(arg reference_duration)"/>
+            <param name="nmpc/reference_radius" value="$(arg reference_radius)"/>
+            <param name="nmpc/reference_line_speed" value="$(arg reference_line_speed)"/>
+            <param name="nmpc/reference_height" value="$(arg reference_height)"/>
+            <param name="nmpc/reference_z_amplitude" value="$(arg reference_z_amplitude)"/>
+            <param name="nmpc/reference_z_frequency" value="$(arg reference_z_frequency)"/>
+            <param name="nmpc/reference_entry_duration" value="$(arg reference_entry_duration)"/>
             <param name="state_estimate_topic" value="$(arg state_estimate_topic)"/>
             <param name="vrpn_pose_topic" value="$(arg vrpn_pose_topic)"/>
             <param name="vrpn_twist_topic" value="$(arg vrpn_twist_topic)"/>

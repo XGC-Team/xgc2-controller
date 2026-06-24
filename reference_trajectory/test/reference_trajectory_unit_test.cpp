@@ -2,100 +2,58 @@
 
 #include <cmath>
 
-#include "reference_trajectory/nmpc_reference_trajectory.h"
-#include "reference_trajectory/uniform_velocity_reference_trajectory.h"
+#include "reference_trajectory/core/trajectory_core.h"
 
 namespace {
 
-TEST(ReferenceTrajectoryUnit, HelperFunctionsProduceValidRotations) {
-    EXPECT_DOUBLE_EQ(reference_trajectory::clamp(2.0, -1.0, 1.0), 1.0);
+TEST(ReferenceTrajectoryCore, HeightCircleProvidesHighOrderDerivatives) {
+    reference_trajectory::core::AnalyticParameters params;
+    params.type = reference_trajectory::core::AnalyticType::kHeightCircle;
+    params.radius = 3.0;
+    params.line_speed = 3.0;
+    params.height = 3.0;
+    params.z_amplitude = 1.0;
+    params.z_frequency = 0.5;
 
-    const Eigen::Quaterniond yaw_quaternion = reference_trajectory::yawToQuaternion(M_PI / 2.0);
-    const Eigen::Vector3d x_axis = yaw_quaternion * Eigen::Vector3d::UnitX();
-    EXPECT_NEAR(x_axis.x(), 0.0, 1e-12);
-    EXPECT_NEAR(x_axis.y(), 1.0, 1e-12);
-
-    Eigen::Matrix3d nearly_rotation = Eigen::Matrix3d::Identity();
-    nearly_rotation(0, 1) = 0.02;
-    const Eigen::Matrix3d projected = reference_trajectory::projectRotation(nearly_rotation);
-    EXPECT_NEAR((projected.transpose() * projected - Eigen::Matrix3d::Identity()).norm(), 0.0,
-                1e-12);
-    EXPECT_NEAR(projected.determinant(), 1.0, 1e-12);
+    reference_trajectory::core::AnalyticEvaluator evaluator(params);
+    reference_trajectory::core::FlatOutput output;
+    ASSERT_TRUE(evaluator.evaluate(0.0, output));
+    EXPECT_NEAR(output.position.x(), 3.0, 1e-12);
+    EXPECT_NEAR(output.velocity.y(), 3.0, 1e-12);
+    EXPECT_TRUE(output.snap.allFinite());
+    EXPECT_TRUE(std::isfinite(output.yaw_rate));
+    EXPECT_TRUE(std::isfinite(output.yaw_accel));
 }
 
-TEST(ReferenceTrajectoryUnit, UavHoverSampleMatchesConfiguredPose) {
-    reference_trajectory::UavReferenceConfig config;
-    config.type = "hover";
-    config.hover_position = Eigen::Vector3d(1.0, 2.0, 3.0);
-    config.yaw = M_PI / 2.0;
-    config.gravity = 9.81;
+TEST(ReferenceTrajectoryCore, WaypointSolverProducesSepticPolynomial) {
+    reference_trajectory::core::WaypointProblem problem;
+    problem.waypoints = {Eigen::Vector3d(0.0, 0.0, 3.0), Eigen::Vector3d(1.0, 1.0, 3.5),
+                         Eigen::Vector3d(2.0, 0.0, 3.0)};
+    problem.segment_times = {2.0, 2.0};
 
-    const reference_trajectory::UavReferenceSample sample =
-        reference_trajectory::UavReferenceGenerator(config).sample(4.0);
+    reference_trajectory::core::PiecewisePolynomialEvaluator evaluator;
+    uint32_t flags = 0U;
+    ASSERT_TRUE(
+        reference_trajectory::core::MincoWaypointSolver().solve(problem, evaluator, &flags));
+    EXPECT_EQ(evaluator.order(), 7U);
+    EXPECT_EQ(evaluator.segments().size(), 2U);
 
-    EXPECT_TRUE(sample.x.segment<3>(0).isApprox(config.hover_position, 1e-12));
-    EXPECT_TRUE(sample.x.segment<3>(3).isZero(0.0));
-    EXPECT_NEAR(sample.u(0), 9.81, 1e-12);
-    EXPECT_TRUE(sample.u.tail<3>().isZero(0.0));
+    reference_trajectory::core::FlatOutput start;
+    reference_trajectory::core::FlatOutput end;
+    ASSERT_TRUE(evaluator.evaluate(0.0, start));
+    ASSERT_TRUE(evaluator.evaluate(4.0, end));
+    EXPECT_TRUE(start.position.isApprox(problem.waypoints.front(), 1e-9));
+    EXPECT_TRUE(end.position.isApprox(problem.waypoints.back(), 1e-9));
+    EXPECT_TRUE(start.snap.allFinite());
+    EXPECT_TRUE(end.snap.allFinite());
 }
 
-TEST(ReferenceTrajectoryUnit, UavCircleSampleHasExpectedFlatOutputAtStart) {
-    reference_trajectory::UavReferenceConfig config;
-    config.type = "circle";
-    config.radius = 2.0;
-    config.omega = 0.5;
-    config.height = 1.5;
+TEST(ReferenceTrajectoryCore, FlatnessMapperRejectsLowThrustSingularity) {
+    reference_trajectory::core::FlatOutput flat;
+    flat.acceleration = -9.8066 * Eigen::Vector3d::UnitZ();
 
-    const reference_trajectory::UavReferenceSample sample =
-        reference_trajectory::UavReferenceGenerator(config).sample(0.0);
-
-    EXPECT_NEAR(sample.x(0), 2.0, 1e-12);
-    EXPECT_NEAR(sample.x(1), 0.0, 1e-12);
-    EXPECT_NEAR(sample.x(2), 1.5, 1e-12);
-    EXPECT_NEAR(sample.x(3), 0.0, 1e-12);
-    EXPECT_NEAR(sample.x(4), 1.0, 1e-12);
-    EXPECT_GT(sample.u(0), config.gravity);
-    EXPECT_TRUE(sample.x.allFinite());
-    EXPECT_TRUE(sample.u.allFinite());
-}
-
-TEST(ReferenceTrajectoryUnit, UgvCircleSampleMatchesAnalyticState) {
-    reference_trajectory::UgvReferenceConfig config;
-    config.type = "circle";
-    config.radius = 3.0;
-    config.omega = 0.2;
-    config.speed = 0.7;
-
-    const reference_trajectory::UgvReferenceSample sample =
-        reference_trajectory::UgvReferenceGenerator(config).sample(0.0);
-
-    EXPECT_NEAR(sample.x(0), 3.0, 1e-12);
-    EXPECT_NEAR(sample.x(1), 0.0, 1e-12);
-    EXPECT_NEAR(sample.x(2), 0.7, 1e-12);
-    EXPECT_NEAR(sample.x(3), M_PI / 2.0, 1e-12);
-    EXPECT_NEAR(sample.u(0), 0.0, 1e-12);
-    EXPECT_NEAR(sample.u(1), 0.2, 1e-12);
-}
-
-TEST(ReferenceTrajectoryUnit, UniformVelocityTrajectoryStepsAndPredicts) {
-    reference_trajectory::UniformVelocityReferenceTrajectory trajectory(1.0, 0.5, 4);
-    trajectory.initialize(Eigen::Vector3d::Zero());
-    trajectory.setNewTarget(Eigen::Vector3d(2.0, 0.0, 0.0), false);
-
-    EXPECT_FALSE(trajectory.hasReachedTarget());
-    EXPECT_NEAR(trajectory.getRemainingDistance(), 2.0, 1e-12);
-    EXPECT_EQ(trajectory.getPredictedTrajectory().rows(), 6);
-    EXPECT_EQ(trajectory.getPredictedTrajectory().cols(), 4);
-    EXPECT_NEAR(trajectory.getStateAtStep(2)(0), 1.0, 1e-12);
-
-    trajectory.step(0.5);
-    EXPECT_NEAR(trajectory.getCurrentPosition().x(), 0.5, 1e-12);
-    EXPECT_NEAR(trajectory.getCurrentVelocity().x(), 1.0, 1e-12);
-
-    trajectory.step(10.0);
-    EXPECT_TRUE(trajectory.hasReachedTarget());
-    EXPECT_TRUE(trajectory.getCurrentPosition().isApprox(Eigen::Vector3d(2.0, 0.0, 0.0), 1e-12));
-    EXPECT_TRUE(trajectory.getCurrentVelocity().isZero(0.0));
+    const auto mapped = reference_trajectory::core::FlatnessMapper(9.8066, 0.1).map(flat);
+    EXPECT_NE(mapped.flags & reference_trajectory::core::kFlagLowThrust, 0U);
 }
 
 }  // namespace

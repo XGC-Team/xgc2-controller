@@ -10,23 +10,24 @@
 namespace multirotor_controller {
 
 TrajectoryInputProducer::TrajectoryInputProducer(ros::NodeHandle& nh, SensorData& sensor_data,
-                                                 ReferenceTrajectoryBuffer& reference_buffer,
+                                                 ActiveTrajectoryCache& active_trajectory_cache,
                                                  ConfigProvider config_provider,
                                                  EventSink event_sink,
                                                  TrajectorySink trajectory_sink,
                                                  uint32_t queue_size)
     : sensor_data_(sensor_data),
-      reference_buffer_(reference_buffer),
+      active_trajectory_cache_(active_trajectory_cache),
       config_provider_(std::move(config_provider)),
       event_sink_(std::move(event_sink)),
       trajectory_sink_(std::move(trajectory_sink)) {
     alg_setpoint_sub_ = nh.subscribe("alg/setpoint_raw/local", queue_size,
                                      &TrajectoryInputProducer::algSetpointCallback, this);
-    flat_trajectory_sub_ = nh.subscribe("alg/reference_trajectory/flat", queue_size,
-                                        &TrajectoryInputProducer::flatTrajectoryCallback, this);
-    bspline_trajectory_sub_ =
-        nh.subscribe("alg/reference_trajectory/bspline", queue_size,
-                     &TrajectoryInputProducer::bsplineTrajectoryCallback, this);
+    active_analytic_sub_ = nh.subscribe("alg/reference_trajectory/active/analytic", queue_size,
+                                        &TrajectoryInputProducer::activeAnalyticCallback, this);
+    active_polynomial_sub_ = nh.subscribe("alg/reference_trajectory/active/polynomial", queue_size,
+                                          &TrajectoryInputProducer::activePolynomialCallback, this);
+    active_sampled_sub_ = nh.subscribe("alg/reference_trajectory/active/sampled", queue_size,
+                                       &TrajectoryInputProducer::activeSampledCallback, this);
     hover_thrust_sub_ = nh.subscribe("hover_thrust/estimate_state", queue_size,
                                      &TrajectoryInputProducer::hoverThrustCallback, this);
 }
@@ -66,40 +67,49 @@ void TrajectoryInputProducer::algSetpointCallback(
     if (trajectory_sink_) {
         trajectory_sink_(traj);
     }
-    reference_buffer_.updateLegacySetpoint(traj, ros::Time::now());
     postInputEvent(event_type::INPUT_MPC_TRAJECTORY_UPDATED, "alg/setpoint_raw/local");
-    postInputEvent(event_type::INPUT_REFERENCE_TRAJECTORY_UPDATED, "alg/setpoint_raw/local");
 }
 
-void TrajectoryInputProducer::flatTrajectoryCallback(
-    const reference_trajectory::UavFlatTrajectory::ConstPtr& msg) {
+void TrajectoryInputProducer::activeAnalyticCallback(
+    const reference_trajectory::AnalyticReference::ConstPtr& msg) {
     if (!msg) {
-        ROS_ERROR("[TrajectoryInputProducer] Received null flat trajectory");
+        ROS_ERROR("[TrajectoryInputProducer] Received null active analytic trajectory");
         return;
     }
-    if (!reference_buffer_.updateFlat(*msg, ros::Time::now())) {
-        ROS_WARN_THROTTLE(1.0, "[TrajectoryInputProducer] Rejected flat trajectory");
-        return;
-    }
-    postInputEvent(event_type::INPUT_REFERENCE_TRAJECTORY_UPDATED, "alg/reference_trajectory/flat");
-}
-
-void TrajectoryInputProducer::bsplineTrajectoryCallback(
-    const reference_trajectory::UavBsplineTrajectory::ConstPtr& msg) {
-    if (!msg) {
-        ROS_ERROR("[TrajectoryInputProducer] Received null bspline trajectory");
-        return;
-    }
-    const ControllerConfig config = config_provider_ ? config_provider_() : ControllerConfig{};
-    if (config.tracking_backend == TrackingBackend::NMPC_ATTITUDE_RATE) {
-        return;
-    }
-    if (!reference_buffer_.updateBspline(*msg, ros::Time::now(), config.nmpc.reference_sample_dt)) {
-        ROS_WARN_THROTTLE(1.0, "[TrajectoryInputProducer] Rejected bspline trajectory");
+    if (!active_trajectory_cache_.updateAnalytic(*msg, ros::Time::now())) {
+        ROS_WARN_THROTTLE(1.0, "[TrajectoryInputProducer] Rejected active analytic trajectory");
         return;
     }
     postInputEvent(event_type::INPUT_REFERENCE_TRAJECTORY_UPDATED,
-                   "alg/reference_trajectory/bspline");
+                   "alg/reference_trajectory/active/analytic");
+}
+
+void TrajectoryInputProducer::activePolynomialCallback(
+    const reference_trajectory::ActivePolynomialReference::ConstPtr& msg) {
+    if (!msg) {
+        ROS_ERROR("[TrajectoryInputProducer] Received null active polynomial trajectory");
+        return;
+    }
+    if (!active_trajectory_cache_.updatePolynomial(*msg, ros::Time::now())) {
+        ROS_WARN_THROTTLE(1.0, "[TrajectoryInputProducer] Rejected active polynomial trajectory");
+        return;
+    }
+    postInputEvent(event_type::INPUT_REFERENCE_TRAJECTORY_UPDATED,
+                   "alg/reference_trajectory/active/polynomial");
+}
+
+void TrajectoryInputProducer::activeSampledCallback(
+    const reference_trajectory::SampledReference::ConstPtr& msg) {
+    if (!msg) {
+        ROS_ERROR("[TrajectoryInputProducer] Received null active sampled trajectory");
+        return;
+    }
+    if (!active_trajectory_cache_.updateSampled(*msg, ros::Time::now())) {
+        ROS_WARN_THROTTLE(1.0, "[TrajectoryInputProducer] Rejected active sampled trajectory");
+        return;
+    }
+    postInputEvent(event_type::INPUT_REFERENCE_TRAJECTORY_UPDATED,
+                   "alg/reference_trajectory/active/sampled");
 }
 
 void TrajectoryInputProducer::hoverThrustCallback(

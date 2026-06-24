@@ -1,12 +1,11 @@
 #pragma once
 
+#include <Eigen/Dense>
 #include <array>
 #include <vector>
 
-#include <Eigen/Dense>
-
 #include "multirotor_controller/nmpc/nmpc_math_utils.h"
-#include "reference_trajectory/nmpc_reference_trajectory.h"
+#include "reference_trajectory/core/nmpc_reference.h"
 
 extern "C" {
 #include "acados_c/ocp_nlp_interface.h"
@@ -18,7 +17,7 @@ namespace multirotor_controller {
 using reference_trajectory::UavReferenceSample;
 
 class UavNmpcSolver {
-public:
+   public:
     UavNmpcSolver();
     ~UavNmpcSolver();
 
@@ -29,19 +28,39 @@ public:
     void resetWarmStart();
     bool solve(const Vector13d& x0, const std::vector<UavReferenceSample>& references);
 
-    Vector4d optimalControl() const { return optimal_control_; }
-    Eigen::Vector3d predictedBodyRate() const { return predicted_body_rate_; }
-    int status() const { return solver_status_; }
-    double solveTimeMs() const { return solve_time_ms_; }
-    double maxQuaternionNormError() const { return max_quaternion_norm_error_; }
-    bool initialized() const { return initialized_; }
+    Vector4d optimalControl() const {
+        return optimal_control_;
+    }
+    Eigen::Vector3d predictedBodyRate() const {
+        return predicted_body_rate_;
+    }
+    int status() const {
+        return solver_status_;
+    }
+    double solveTimeMs() const {
+        return solve_time_ms_;
+    }
+    double maxQuaternionNormError() const {
+        return max_quaternion_norm_error_;
+    }
+    bool initialized() const {
+        return initialized_;
+    }
 
-    static constexpr int nx() { return UAV_NMPC_NX; }
-    static constexpr int nu() { return UAV_NMPC_NU; }
-    static constexpr int np() { return UAV_NMPC_NP; }
-    static constexpr int horizonSteps() { return UAV_NMPC_N; }
+    static constexpr int nx() {
+        return UAV_NMPC_NX;
+    }
+    static constexpr int nu() {
+        return UAV_NMPC_NU;
+    }
+    static constexpr int np() {
+        return UAV_NMPC_NP;
+    }
+    static constexpr int horizonSteps() {
+        return UAV_NMPC_N;
+    }
 
-private:
+   private:
     bool setInitialState(const Vector13d& x0);
     bool setReference(int stage, const UavReferenceSample& reference);
     void setGuesses(const Vector13d& x0, const std::vector<UavReferenceSample>& references);

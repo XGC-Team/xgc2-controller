@@ -2,7 +2,7 @@
 
 #include "multirotor_controller/common/types.h"
 
-#include <estimator_rigid_state/RigidStateEstimate.h>
+#include <estimator_vrpn_px4_rotor_state/RigidStateEstimate.h>
 #include <cmath>
 
 namespace multirotor_controller {
@@ -33,19 +33,19 @@ inline bool isVrpnPoseConsistent(const SensorData &sensor,
 
 inline bool isStateEstimateUsableForControl(const SensorData &sensor) {
   constexpr uint32_t kBlockingFlags =
-      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_MISSING |
-      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_STALE |
-      estimator_rigid_state::RigidStateEstimate::FLAG_IMU_RATE_LOW |
-      estimator_rigid_state::RigidStateEstimate::FLAG_TIME_JUMP |
-      estimator_rigid_state::RigidStateEstimate::FLAG_FAULT |
-      estimator_rigid_state::RigidStateEstimate::FLAG_EXTRINSIC_UNVERIFIED |
-      estimator_rigid_state::RigidStateEstimate::FLAG_COVARIANCE_HIGH |
-      estimator_rigid_state::RigidStateEstimate::FLAG_INVALID_IMU;
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_IMU_MISSING |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_IMU_STALE |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_IMU_RATE_LOW |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_TIME_JUMP |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_FAULT |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_EXTRINSIC_UNVERIFIED |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_COVARIANCE_HIGH |
+      estimator_vrpn_px4_rotor_state::RigidStateEstimate::FLAG_INVALID_IMU;
   const bool state_ok =
       sensor.uav_state_estimator_state ==
-          estimator_rigid_state::RigidStateEstimate::STATE_RUNNING ||
+          estimator_vrpn_px4_rotor_state::RigidStateEstimate::STATE_RUNNING ||
       sensor.uav_state_estimator_state ==
-          estimator_rigid_state::RigidStateEstimate::STATE_COASTING;
+          estimator_vrpn_px4_rotor_state::RigidStateEstimate::STATE_COASTING;
   return sensor.uav_state_estimate_stats.is_active && state_ok &&
          (sensor.uav_state_estimator_flags & kBlockingFlags) == 0u;
 }

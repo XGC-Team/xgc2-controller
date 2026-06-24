@@ -50,9 +50,13 @@ required_files=(
   multirotor_controller/config/uav_nmpc.yaml
   reference_trajectory/CMakeLists.txt
   reference_trajectory/package.xml
-  reference_trajectory/msg/UavFlatTrajectory.msg
-  reference_trajectory/msg/UavBsplineTrajectory.msg
-  reference_trajectory/include/reference_trajectory/nmpc_reference_trajectory.h
+  reference_trajectory/msg/AnalyticReference.msg
+  reference_trajectory/msg/WaypointReferenceRequest.msg
+  reference_trajectory/msg/SampledReference.msg
+  reference_trajectory/msg/ActivePolynomialReference.msg
+  reference_trajectory/msg/ReferenceStatus.msg
+  reference_trajectory/include/reference_trajectory/core/trajectory_core.h
+  reference_trajectory/include/reference_trajectory/reference_trajectory_runtime.h
   reference_trajectory/launch/uav_reference_trajectory.launch
 )
 
@@ -77,6 +81,13 @@ grep -q "xgc2-acados (>= 0.1.0-3~focal)" .xgc2/scripts/package_debs.sh
 if grep -R --exclude='check_package_compliance.sh' "ros-noetic-xgc2-reference" \
   .github .xgc2 README.md multirotor_controller reference_trajectory >/dev/null; then
   echo "Deprecated ros-noetic-xgc2-reference dependency found." >&2
+  exit 1
+fi
+
+if grep -R --exclude='check_package_compliance.sh' \
+  -E "UavFlatTrajectory|UavBsplineTrajectory|nmpc_reference_trajectory|uav_reference_circle_entry|publish_uav_reference_trajectory|alg/reference_trajectory/(flat|bspline|activate)" \
+  .github .xgc2 README.md multirotor_controller reference_trajectory >/dev/null; then
+  echo "Deprecated reference trajectory interface found." >&2
   exit 1
 fi
 

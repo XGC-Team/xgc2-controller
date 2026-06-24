@@ -17,7 +17,7 @@ set(MULTIROTOR_CONTROLLER_CATKIN_COMPONENTS
   mavros_msgs
   reference_trajectory
   hover_thrust_estimator
-  estimator_rigid_state
+  estimator_vrpn_px4_rotor_state
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(xgc2_acados REQUIRED CONFIG)
 find_package(xgc2_state_machine REQUIRED CONFIG)
-find_package(xgc2_geometry REQUIRED CONFIG)
+find_package(xgc2_math REQUIRED CONFIG)
 
 set(MULTIROTOR_HOVER_THRUST_INCLUDE_DIRS ${hover_thrust_estimator_INCLUDE_DIRS})
 if(hover_thrust_estimator_DIR)
@@ -274,7 +274,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp std_msgs message_runtime geometry_msgs nav_msgs sensor_msgs mavros_msgs ros1_utils reference_trajectory hover_thrust_estimator estimator_rigid_state
+  CATKIN_DEPENDS roscpp std_msgs message_runtime geometry_msgs nav_msgs sensor_msgs mavros_msgs ros1_utils reference_trajectory hover_thrust_estimator estimator_vrpn_px4_rotor_state
 )
 
 ###########
@@ -354,7 +354,7 @@ add_executable(${PROJECT_NAME}_node
   src/output/px4_service_output_consumer.cpp
   src/output/reference_activation_output_consumer.cpp
   src/uav/nmpc_result_buffer.cpp
-  src/uav/reference_trajectory_buffer.cpp
+  src/uav/active_trajectory_cache.cpp
   src/uav/state_machine/debug_monitor_state.cpp
   src/uav/state_machine/health_monitor_state.cpp
   src/uav/state_machine/self_check_state.cpp
@@ -384,7 +384,7 @@ add_dependencies(${PROJECT_NAME}_node
 target_link_libraries(${PROJECT_NAME}_node
   multirotor_controller_uav_nmpc_runtime
   xgc2_state_machine::state_machine
-  xgc2_geometry::geometry
+  xgc2_math::geometry
   ${catkin_LIBRARIES}
   pthread
 )
@@ -423,7 +423,7 @@ if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(multirotor_controller_nmpc_event_runtime_test
     test/nmpc_event_runtime_test.cpp
     src/uav/nmpc_result_buffer.cpp
-    src/uav/reference_trajectory_buffer.cpp
+    src/uav/active_trajectory_cache.cpp
   )
   if(TARGET multirotor_controller_nmpc_event_runtime_test)
     target_include_directories(multirotor_controller_nmpc_event_runtime_test
@@ -438,7 +438,7 @@ if(CATKIN_ENABLE_TESTING)
       multirotor_controller_uav_nmpc_runtime
       ${catkin_LIBRARIES}
       gtest_main
-      xgc2_geometry::geometry
+      xgc2_math::geometry
     )
   endif()
 endif()

@@ -12,7 +12,14 @@ nmpc:
   solve_timeout: 0.03
   result_timeout: 0.1
   reference_timeout: 0.5
-  reference_sample_dt: 0.01
+  reference_start_delay: 0.2
+  reference_duration: 60.0
+  reference_radius: 3.0
+  reference_line_speed: 3.0
+  reference_height: 3.0
+  reference_z_amplitude: 1.0
+  reference_z_frequency: 0.5
+  reference_entry_duration: 5.0
   enable_timing_log: true
   log_period: 1.0
 

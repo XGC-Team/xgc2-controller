@@ -1,7 +1,7 @@
 #pragma once
 
 #include "multirotor_controller/common/types.h"
-#include <estimator_rigid_state/RigidStateEstimate.h>
+#include <estimator_vrpn_px4_rotor_state/RigidStateEstimate.h>
 #include <ros1_utils/param_utils.h>
 #include <ros1_utils/topic_stats.h>
 
@@ -35,7 +35,7 @@ public:
 
 private:
   void stateEstimateCallback(
-      const estimator_rigid_state::RigidStateEstimate::ConstPtr &msg);
+      const estimator_vrpn_px4_rotor_state::RigidStateEstimate::ConstPtr &msg);
   void localPosCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
   void velocityCallback(const geometry_msgs::TwistStamped::ConstPtr &msg);
   void imuCallback(const sensor_msgs::Imu::ConstPtr &msg);
