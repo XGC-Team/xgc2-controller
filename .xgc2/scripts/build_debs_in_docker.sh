@@ -53,62 +53,13 @@ docker run --rm \
     export DEBIAN_FRONTEND=noninteractive
     /workspace/xgc2-controller/.xgc2/scripts/setup_xgc2_apt_source.sh
     apt-get install -y --no-install-recommends \
-      build-essential \
       ca-certificates \
-      cmake \
       dpkg-dev \
       fakeroot \
-      file \
-      git \
-      libeigen3-dev \
-      libxgc2-math-dev \
-      libxgc2-state-machine-dev \
-      python3-numpy \
-      rsync \
-      xgc2-acados \
-      ros-noetic-geometry-msgs \
-      ros-noetic-mavros-msgs \
-      ros-noetic-message-generation \
-      ros-noetic-nav-msgs \
-      ros-noetic-roscpp \
-      ros-noetic-roslaunch \
-      ros-noetic-rospack \
-      ros-noetic-rospy \
-      ros-noetic-rostest \
-      ros-noetic-rosunit \
-      ros-noetic-sensor-msgs \
-      ros-noetic-std-msgs \
-      ros-noetic-xgc2-estimator-hover-thrust \
-      ros-noetic-xgc2-estimator-rigid-state \
-      ros-noetic-xgc2-ros1-utils
+      git
 
-    rm -rf /workspace/work/src /workspace/work/build /workspace/work/devel /workspace/work/install-root
-    mkdir -p /workspace/work/src/xgc2-controller
-    rsync -a --delete /workspace/xgc2-controller/ /workspace/work/src/xgc2-controller/
-
-    cd /workspace/work
-    set +u
-    source /opt/ros/noetic/setup.bash
-    set -u
-    parallel_jobs="$(nproc)"
-    PYTHONPATH=/workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools \
-      python3 -B -m unittest discover \
-        -s /workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools/unicycle_nmpc/tests \
-        -v
-    catkin_make -j"${parallel_jobs}" -l"${parallel_jobs}" \
-      run_tests_multirotor_reference_trajectory \
-      run_tests_px4_multirotor_controller \
-      run_tests_unicycle_reference_trajectory \
-      run_tests_unicycle_ugv_controller
-    catkin_test_results
-    DESTDIR=/workspace/work/install-root catkin_make -j"${parallel_jobs}" -l"${parallel_jobs}" install \
-      -DCMAKE_INSTALL_PREFIX=/opt/ros/noetic \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" \
-      -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG"
-
+    /workspace/xgc2-controller/.xgc2/scripts/check_package_compliance.sh
     /workspace/xgc2-controller/.xgc2/scripts/package_debs.sh \
-      --install-root /workspace/work/install-root \
       --output-dir /workspace/out
 
     if [[ "${INSTALL_CHECK}" == "true" ]]; then

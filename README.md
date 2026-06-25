@@ -1,26 +1,22 @@
 # XGC2 Controller
 
-ROS1 controller product repository for XGC2 robots.
+Aggregate repository for XGC2 ROS1 controllers.
 
-Current packages:
+This repository no longer owns controller source code directly. It pins the split
+controller products as submodules and publishes `ros-noetic-xgc2-controller` as a
+small metapackage:
 
-- `px4_multirotor_controller`: PX4/MAVROS multirotor controller with state-machine
-  runtime and UAV NMPC tracking.
-- `multirotor_reference_trajectory`: reference trajectory messages, generation library, and
-  ROS publishers used by the multirotor controller.
-- `unicycle_ugv_controller`: unicycle-model UGV NMPC controller publishing
-  `geometry_msgs/Twist`.
-- `unicycle_reference_trajectory`: planar analytic, waypoint, and sampled
-  reference trajectory messages and publishers for unicycle UGV tracking.
+- `multirotor-controller` -> `lxk36/xgc2-multirotor-controller`
+- `ugv-controller` -> `lxk36/xgc2-ugv-controller`
 
-## Install
+Install the aggregate package when a deployment needs both controller families:
 
 ```bash
 sudo apt update
 sudo apt install ros-noetic-xgc2-controller
 ```
 
-## Smoke Test
+The concrete ROS packages are provided by the split products:
 
 ```bash
 source /opt/ros/noetic/setup.bash
