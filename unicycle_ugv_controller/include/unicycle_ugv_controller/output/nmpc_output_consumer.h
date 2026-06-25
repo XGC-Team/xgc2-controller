@@ -29,7 +29,7 @@ class NmpcOutputConsumer final : public ::state_machine::runtime::EventConsumer 
         uint64_t sequence{0U};
         ros::Time now;
         UgvState state;
-        std::vector<unicycle_reference_trajectory::UnicycleReferenceSample> references;
+        std::vector<Se2Reference> references;
         ControllerConfig config;
     };
 

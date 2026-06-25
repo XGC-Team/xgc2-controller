@@ -15,7 +15,7 @@ class CmdVelOutputConsumer final : public ::state_machine::runtime::EventConsume
    public:
     CmdVelOutputConsumer(ros::NodeHandle& nh,
                          ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle>& executor,
-                         UnicycleUgvController& controller, std::string cmd_vel_topic,
+                         UnicycleUgvController& controller, const std::string& cmd_vel_topic,
                          uint32_t queue_size);
 
     std::string name() const override {

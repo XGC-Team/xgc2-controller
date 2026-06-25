@@ -1,21 +1,30 @@
 #include <gtest/gtest.h>
 
-#include "unicycle_reference_trajectory/core/trajectory_core.h"
+#include <memory>
+#include <vector>
+#include <xgc2_math/trajectory.hpp>
 
 TEST(UnicycleReferenceTrajectorySmoke, AnalyticEvaluatorsDoNotProduceNonFiniteOutput) {
-    for (const auto type : {unicycle_reference_trajectory::core::AnalyticType::kHold,
-                            unicycle_reference_trajectory::core::AnalyticType::kCircle,
-                            unicycle_reference_trajectory::core::AnalyticType::kCircleEntry,
-                            unicycle_reference_trajectory::core::AnalyticType::kFigureEight}) {
-        unicycle_reference_trajectory::core::AnalyticParameters params;
-        params.type = type;
-        params.radius = 3.0;
-        params.line_speed = 1.5;
-        params.entry_duration = 2.0;
-        unicycle_reference_trajectory::core::AnalyticEvaluator evaluator(params);
-        unicycle_reference_trajectory::core::PlanarReference output;
-        ASSERT_TRUE(evaluator.evaluate(0.5, output));
-        EXPECT_TRUE(unicycle_reference_trajectory::core::TrajectoryValidator::finite(output));
+    namespace trajectory = xgc2_math::trajectory;
+    std::vector<std::unique_ptr<trajectory::TrajectoryEvaluator2>> evaluators;
+    evaluators.push_back(std::make_unique<trajectory::HoldCurveEvaluator2>());
+    trajectory::CircleCurveParameters2 circle;
+    circle.radius = 3.0;
+    circle.line_speed = 1.5;
+    evaluators.push_back(std::make_unique<trajectory::CircleCurveEvaluator2>(circle));
+    trajectory::CircleEntryCurveParameters2 entry;
+    entry.entry_duration = 2.0;
+    entry.circle = circle;
+    evaluators.push_back(std::make_unique<trajectory::CircleEntryCurveEvaluator2>(entry));
+    trajectory::FigureEightCurveParameters2 figure_eight;
+    figure_eight.radius = 3.0;
+    figure_eight.line_speed = 1.5;
+    evaluators.push_back(std::make_unique<trajectory::FigureEightCurveEvaluator2>(figure_eight));
+
+    for (const auto& evaluator : evaluators) {
+        trajectory::PlanarReference2 output;
+        ASSERT_TRUE(evaluator->evaluate(0.5, output));
+        EXPECT_TRUE(trajectory::TrajectoryValidator2::finite(output));
     }
 }
 

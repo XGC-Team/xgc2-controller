@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 find_package(xgc2_state_machine REQUIRED CONFIG)
+find_package(xgc2_math REQUIRED CONFIG)
 
 find_package(Eigen3 REQUIRED)
 
@@ -30,22 +31,14 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES unicycle_reference_trajectory_core
   CATKIN_DEPENDS geometry_msgs message_runtime roscpp rospy std_msgs
-  DEPENDS EIGEN3
+  DEPENDS EIGEN3 xgc2_math
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-)
-
-add_library(unicycle_reference_trajectory_core
-  src/core/trajectory_core.cpp
-)
-target_link_libraries(unicycle_reference_trajectory_core
-  ${catkin_LIBRARIES}
 )
 
 add_executable(unicycle_reference_trajectory_node
@@ -63,7 +56,7 @@ add_executable(unicycle_reference_trajectory_node
 add_dependencies(unicycle_reference_trajectory_node ${${PROJECT_NAME}_EXPORTED_TARGETS}
                                       ${catkin_EXPORTED_TARGETS})
 target_link_libraries(unicycle_reference_trajectory_node
-  unicycle_reference_trajectory_core
+  xgc2_math::trajectory
   xgc2_state_machine::state_machine
   ${catkin_LIBRARIES}
   pthread
@@ -73,7 +66,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
-install(TARGETS unicycle_reference_trajectory_core unicycle_reference_trajectory_node
+install(TARGETS unicycle_reference_trajectory_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -88,7 +81,7 @@ if(CATKIN_ENABLE_TESTING)
     test/unicycle_reference_trajectory_unit_test.cpp
   )
   target_link_libraries(unicycle_reference_trajectory_unit_test
-    unicycle_reference_trajectory_core
+    xgc2_math::trajectory
     ${catkin_LIBRARIES}
   )
 
@@ -96,7 +89,7 @@ if(CATKIN_ENABLE_TESTING)
     test/unicycle_reference_trajectory_smoke_test.cpp
   )
   target_link_libraries(unicycle_reference_trajectory_smoke_test
-    unicycle_reference_trajectory_core
+    xgc2_math::trajectory
     ${catkin_LIBRARIES}
   )
 endif()

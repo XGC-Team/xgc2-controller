@@ -57,11 +57,11 @@ TEST(ActiveTrajectoryCache, AnalyticReferenceSamplesAndBuildsHorizon) {
     EXPECT_TRUE(sample.position.array().isFinite().all());
     EXPECT_TRUE(sample.snap.array().isFinite().all());
 
-    std::vector<multirotor_reference_trajectory::UavReferenceSample> horizon;
+    std::vector<Se3Reference> horizon;
     ASSERT_TRUE(cache.sampleHorizon(ros::Time(10.0), 0.1, 10, 1.0, 9.8066, horizon));
     EXPECT_EQ(horizon.size(), 12U);
-    EXPECT_TRUE(horizon.front().x.array().isFinite().all());
-    EXPECT_TRUE(horizon.front().u.array().isFinite().all());
+    EXPECT_TRUE(control::packState(horizon.front().state).array().isFinite().all());
+    EXPECT_TRUE(control::packControl(horizon.front().control).array().isFinite().all());
 }
 
 TEST(ActiveTrajectoryCache, ReportsFiniteReferenceEndBeforeHorizonSamplingFails) {
@@ -69,7 +69,7 @@ TEST(ActiveTrajectoryCache, ReportsFiniteReferenceEndBeforeHorizonSamplingFails)
     ASSERT_TRUE(cache.updateAnalytic(makeAnalyticReference(), ros::Time(10.0)));
 
     double remaining = 0.0;
-    std::vector<multirotor_reference_trajectory::UavReferenceSample> horizon;
+    std::vector<Se3Reference> horizon;
     ASSERT_TRUE(cache.finiteTimeRemaining(ros::Time(68.8), 100.0, remaining));
     EXPECT_NEAR(remaining, 1.2, 1e-9);
     EXPECT_TRUE(cache.sampleHorizon(ros::Time(68.8), 0.1, 10, 100.0, 9.8066, horizon));
@@ -136,14 +136,14 @@ TEST(UavNmpcSolver, SolvesHoverEquilibrium) {
     UavNmpcSolver solver;
     ASSERT_TRUE(solver.initialize());
 
-    multirotor_reference_trajectory::UavReferenceSample hover;
-    hover.x.setZero();
-    hover.x(2) = 3.0;
-    hover.x(6) = 1.0;
-    hover.u << 9.8066, 0.0, 0.0, 0.0;
+    Se3Reference hover;
+    hover.state.position.z() = 3.0;
+    hover.state.attitude = Eigen::Quaterniond::Identity();
+    hover.control.body_z_specific_force = 9.8066;
+    hover.control.angular_acceleration.setZero();
 
-    Vector13d x0 = hover.x;
-    std::vector<multirotor_reference_trajectory::UavReferenceSample> references(
+    Se3StateVector x0 = control::packState(hover.state);
+    std::vector<Se3Reference> references(
         static_cast<size_t>(UavNmpcSolver::horizonSteps() + 2), hover);
     EXPECT_TRUE(solver.solve(x0, references)) << "status=" << solver.status();
     EXPECT_NEAR(solver.optimalControl()(0), 9.8066, 1e-3);
@@ -164,11 +164,11 @@ TEST(UavNmpcSolver, AnalyticReferenceSmallErrorsDoNotBangAngularAcceleration) {
     double max_angular_accel = 0.0;
     for (int phase = 0; phase < 360; phase += 30) {
         const double t0 = static_cast<double>(phase) * M_PI / 180.0;
-        std::vector<multirotor_reference_trajectory::UavReferenceSample> references;
+        std::vector<Se3Reference> references;
         ASSERT_TRUE(cache.sampleHorizon(ros::Time(10.0 + t0), kStageDt,
                                         UavNmpcSolver::horizonSteps(), 100.0, 9.8066, references));
 
-        Vector13d x0 = references.front().x;
+        Se3StateVector x0 = control::packState(references.front().state);
         const double angle = static_cast<double>(phase) * M_PI / 180.0;
         x0(0) += 0.01 * std::cos(angle);
         x0(1) += 0.01 * std::sin(angle);
@@ -178,8 +178,8 @@ TEST(UavNmpcSolver, AnalyticReferenceSmallErrorsDoNotBangAngularAcceleration) {
         solver.resetWarmStart();
         EXPECT_TRUE(solver.solve(x0, references))
             << "phase=" << phase << " status=" << solver.status();
-        const Vector4d control = solver.optimalControl();
-        const double angular_accel = control.tail<3>().cwiseAbs().maxCoeff();
+        const Se3ControlVector command = solver.optimalControl();
+        const double angular_accel = command.tail<3>().cwiseAbs().maxCoeff();
         max_angular_accel = std::max(max_angular_accel, angular_accel);
         if (angular_accel > kSaturationGuard) {
             ++near_saturation_count;

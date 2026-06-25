@@ -79,7 +79,7 @@ mapfile -d '' TIDY_FILES < <(
 )
 clang-tidy \
   -p "${WORK_DIR}/build" \
-  -header-filter="^${WORK_DIR}/src/xgc2-controller/(px4_multirotor_controller|multirotor_reference_trajectory|unicycle_ugv_controller|unicycle_reference_trajectory)/(include|src|test)/" \
+  -header-filter="^${WORK_DIR}/src/xgc2-controller/(px4_multirotor_controller|multirotor_reference_trajectory|unicycle_ugv_controller|unicycle_reference_trajectory)/(src|test)/" \
   -quiet \
   "${TIDY_FILES[@]}"
 

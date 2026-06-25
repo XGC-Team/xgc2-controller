@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include "unicycle_reference_trajectory/core/nmpc_reference.h"
 #include "unicycle_ugv_controller/common/types.h"
 #include "unicycle_ugv_controller/nmpc/unicycle_nmpc_solver.h"
 
@@ -15,8 +14,7 @@ class NmpcTrackingBackend {
     void configure(const ControllerConfig& config);
     bool enter();
     void exit();
-    bool compute(const UgvState& state,
-                 const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs,
+    bool compute(const UgvState& state, const std::vector<Se2Reference>& refs,
                  const ros::Time& now, ControlCommand& command);
     int status() const {
         return status_;

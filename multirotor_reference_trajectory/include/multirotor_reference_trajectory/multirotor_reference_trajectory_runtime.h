@@ -7,16 +7,18 @@
 #include <queue>
 #include <state_machine/state_machine.hpp>
 #include <thread>
+#include <xgc2_math/trajectory.hpp>
 
 #include "multirotor_reference_trajectory/ActivePolynomialReference.h"
 #include "multirotor_reference_trajectory/AnalyticReference.h"
 #include "multirotor_reference_trajectory/ReferenceStatus.h"
 #include "multirotor_reference_trajectory/SampledReference.h"
 #include "multirotor_reference_trajectory/WaypointReferenceRequest.h"
-#include "multirotor_reference_trajectory/core/trajectory_core.h"
 #include "multirotor_reference_trajectory/state_machine/event_types.h"
 
 namespace multirotor_reference_trajectory {
+
+namespace trajectory = xgc2_math::trajectory;
 
 struct ReferenceTrajectoryConfig {
     double status_rate_hz{10.0};
@@ -24,7 +26,7 @@ struct ReferenceTrajectoryConfig {
     double validation_sample_dt{0.02};
     double trajectory_timeout{0.5};
     double min_lead_time{0.2};
-    core::TrajectoryLimits limits{};
+    trajectory::TrajectoryLimits3 limits{};
 };
 
 class ReferenceTrajectoryRuntime {
@@ -57,7 +59,7 @@ class ReferenceTrajectoryRuntime {
     const ReferenceTrajectoryConfig& config() const {
         return config_;
     }
-    core::TrajectoryModelType activeType() const {
+    trajectory::TrajectoryModelType activeType() const {
         return active_type_;
     }
     uint32_t activeTrajectoryId() const {
@@ -80,7 +82,7 @@ class ReferenceTrajectoryRuntime {
         return active_polynomial_;
     }
     ReferenceStatus makeStatus(double stamp_sec) const;
-    const core::TrajectoryEvaluator* evaluator() const {
+    const trajectory::TrajectoryEvaluator3* evaluator() const {
         return active_evaluator_.get();
     }
     ::state_machine::StateMachine& stateMachine() {
@@ -105,7 +107,7 @@ class ReferenceTrajectoryRuntime {
         bool success{false};
         uint32_t flags{0U};
         ActivePolynomialReference msg{};
-        std::unique_ptr<core::PiecewisePolynomialEvaluator> evaluator;
+        std::unique_ptr<trajectory::PiecewisePolynomialEvaluator3> evaluator;
     };
 
     void setupMachine();
@@ -113,18 +115,18 @@ class ReferenceTrajectoryRuntime {
     PlanningResult solveWaypointPlan(const PlanningRequest& request) const;
     void drainPlanningResults(double now_sec);
     void clearPlanningQueuesLocked();
-    bool buildAnalyticEvaluator(const AnalyticReference& msg, core::AnalyticEvaluator& evaluator,
-                                uint32_t& flags) const;
-    bool buildSampledEvaluator(const SampledReference& msg, core::SampledEvaluator& evaluator,
+    std::unique_ptr<trajectory::TrajectoryEvaluator3> buildAnalyticEvaluator(
+        const AnalyticReference& msg, uint32_t& flags) const;
+    bool buildSampledEvaluator(const SampledReference& msg, trajectory::SampledEvaluator3& evaluator,
                                uint32_t& flags) const;
-    bool buildWaypointProblem(const WaypointReferenceRequest& msg, core::WaypointProblem& problem,
+    bool buildWaypointProblem(const WaypointReferenceRequest& msg, trajectory::WaypointProblem3& problem,
                               uint32_t& flags) const;
     void setActiveAnalytic(const AnalyticReference& msg,
-                           std::unique_ptr<core::TrajectoryEvaluator> evaluator, uint32_t flags);
+                           std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
     void setActiveSampled(const SampledReference& msg,
-                          std::unique_ptr<core::TrajectoryEvaluator> evaluator, uint32_t flags);
+                          std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
     void setActivePolynomial(ActivePolynomialReference msg,
-                             std::unique_ptr<core::TrajectoryEvaluator> evaluator, uint32_t flags);
+                             std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
 
     ReferenceTrajectoryConfig config_{};
     std::unique_ptr<::state_machine::StateMachine> machine_;
@@ -149,12 +151,12 @@ class ReferenceTrajectoryRuntime {
     bool has_completed_plan_{false};
     PlanningResult completed_plan_;
 
-    core::TrajectoryModelType active_type_{core::TrajectoryModelType::kNone};
+    trajectory::TrajectoryModelType active_type_{trajectory::TrajectoryModelType::kNone};
     uint32_t active_trajectory_id_{0U};
     uint32_t active_revision_{0U};
     double active_start_sec_{0.0};
     double active_duration_{0.0};
-    std::unique_ptr<core::TrajectoryEvaluator> active_evaluator_;
+    std::unique_ptr<trajectory::TrajectoryEvaluator3> active_evaluator_;
     AnalyticReference active_analytic_;
     SampledReference active_sampled_;
     ActivePolynomialReference active_polynomial_;

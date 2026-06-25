@@ -55,9 +55,7 @@ void UnicycleNmpcSolver::resetWarmStart() {
     }
 }
 
-bool UnicycleNmpcSolver::solve(
-    const Eigen::Matrix<double, 4, 1>& x0,
-    const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs) {
+bool UnicycleNmpcSolver::solve(const Se2StateVector& x0, const std::vector<Se2Reference>& refs) {
     if (!initialized_ && !initialize()) {
         return false;
     }
@@ -86,7 +84,7 @@ bool UnicycleNmpcSolver::solve(
     return true;
 }
 
-bool UnicycleNmpcSolver::setInitialState(const Eigen::Matrix<double, 4, 1>& x0) {
+bool UnicycleNmpcSolver::setInitialState(const Se2StateVector& x0) {
     ocp_nlp_config* config = unicycle_nmpc_acados_get_nlp_config(capsule_);
     ocp_nlp_dims* dims = unicycle_nmpc_acados_get_nlp_dims(capsule_);
     ocp_nlp_in* in = unicycle_nmpc_acados_get_nlp_in(capsule_);
@@ -98,27 +96,27 @@ bool UnicycleNmpcSolver::setInitialState(const Eigen::Matrix<double, 4, 1>& x0) 
     return status == 0;
 }
 
-bool UnicycleNmpcSolver::setReference(
-    int stage, const unicycle_reference_trajectory::UnicycleReferenceSample& ref) {
+bool UnicycleNmpcSolver::setReference(int stage, const Se2Reference& ref) {
     Eigen::Matrix<double, UNICYCLE_NMPC_NP, 1> p;
-    p.segment<4>(0) = ref.x;
-    p.segment<2>(4) = ref.u;
+    p.segment<4>(0) = control::packState(ref.state);
+    p.segment<2>(4) = control::packControl(ref.control);
     return unicycle_nmpc_acados_update_params(capsule_, stage, p.data(), UNICYCLE_NMPC_NP) == 0;
 }
 
-void UnicycleNmpcSolver::setGuesses(
-    const Eigen::Matrix<double, 4, 1>& x0,
-    const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs) {
+void UnicycleNmpcSolver::setGuesses(const Se2StateVector& x0,
+                                    const std::vector<Se2Reference>& refs) {
     ocp_nlp_config* config = unicycle_nmpc_acados_get_nlp_config(capsule_);
     ocp_nlp_dims* dims = unicycle_nmpc_acados_get_nlp_dims(capsule_);
     ocp_nlp_in* in = unicycle_nmpc_acados_get_nlp_in(capsule_);
     ocp_nlp_out* out = unicycle_nmpc_acados_get_nlp_out(capsule_);
     if (!have_warm_start_) {
         for (int i = 0; i <= UNICYCLE_NMPC_N; ++i) {
-            x_guess_[static_cast<size_t>(i)] = refs[static_cast<size_t>(i)].x;
+            x_guess_[static_cast<size_t>(i)] =
+                control::packState(refs[static_cast<size_t>(i)].state);
         }
         for (int i = 0; i < UNICYCLE_NMPC_N; ++i) {
-            u_guess_[static_cast<size_t>(i)] = refs[static_cast<size_t>(i)].u;
+            u_guess_[static_cast<size_t>(i)] =
+                control::packControl(refs[static_cast<size_t>(i)].control);
         }
     }
     x_guess_[0] = x0;

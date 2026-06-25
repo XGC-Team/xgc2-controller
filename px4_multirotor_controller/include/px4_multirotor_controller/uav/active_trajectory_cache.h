@@ -4,12 +4,12 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <xgc2_math/control.hpp>
+#include <xgc2_math/trajectory.hpp>
 
 #include "multirotor_reference_trajectory/ActivePolynomialReference.h"
 #include "multirotor_reference_trajectory/AnalyticReference.h"
 #include "multirotor_reference_trajectory/SampledReference.h"
-#include "multirotor_reference_trajectory/core/nmpc_reference.h"
-#include "multirotor_reference_trajectory/core/trajectory_core.h"
 #include "px4_multirotor_controller/common/types.h"
 #include "px4_multirotor_controller/nmpc/uav_nmpc_solver.h"
 
@@ -41,7 +41,7 @@ class ActiveTrajectoryCache {
     bool sample(const ros::Time& now, double timeout, UavReferencePoint& sample) const;
     bool sampleHorizon(
         const ros::Time& now, double stage_dt, int horizon_steps, double timeout, double gravity,
-        std::vector<multirotor_reference_trajectory::UavReferenceSample>& references) const;
+        std::vector<xgc2_math::control::Se3Reference>& references) const;
 
     uint64_t sequence() const;
     uint32_t trajectoryId() const;
@@ -51,25 +51,23 @@ class ActiveTrajectoryCache {
 
    private:
     static bool finiteVector(const Eigen::Vector3d& value);
-    static bool buildAnalyticEvaluator(
+    static std::unique_ptr<xgc2_math::trajectory::TrajectoryEvaluator3> buildAnalyticEvaluator(
         const multirotor_reference_trajectory::AnalyticReference& msg,
-        multirotor_reference_trajectory::core::AnalyticEvaluator& evaluator, uint32_t& flags);
+        uint32_t& flags);
     static bool buildPolynomialEvaluator(
         const multirotor_reference_trajectory::ActivePolynomialReference& msg,
-        multirotor_reference_trajectory::core::PiecewisePolynomialEvaluator& evaluator,
-        uint32_t& flags);
+        xgc2_math::trajectory::PiecewisePolynomialEvaluator3& evaluator, uint32_t& flags);
     static bool buildSampledEvaluator(
         const multirotor_reference_trajectory::SampledReference& msg,
-        multirotor_reference_trajectory::core::SampledEvaluator& evaluator, uint32_t& flags);
-    static UavReferencePoint toPoint(const multirotor_reference_trajectory::core::FlatOutput& flat,
-                                     double t);
-    static multirotor_reference_trajectory::UavReferenceSample toNmpcSample(
-        const multirotor_reference_trajectory::core::FullStateReference& full);
+        xgc2_math::trajectory::SampledEvaluator3& evaluator, uint32_t& flags);
+    static UavReferencePoint toPoint(const xgc2_math::trajectory::FlatOutput3& flat, double t);
+    static xgc2_math::control::Se3Reference toNmpcReference(
+        const xgc2_math::trajectory::FullStateReference3& full);
 
     mutable std::mutex mutex_;
-    std::unique_ptr<multirotor_reference_trajectory::core::TrajectoryEvaluator> evaluator_;
-    multirotor_reference_trajectory::core::TrajectoryModelType type_{
-        multirotor_reference_trajectory::core::TrajectoryModelType::kNone};
+    std::shared_ptr<const xgc2_math::trajectory::TrajectoryEvaluator3> evaluator_;
+    xgc2_math::trajectory::TrajectoryModelType type_{
+        xgc2_math::trajectory::TrajectoryModelType::kNone};
     uint32_t trajectory_id_{0U};
     uint32_t revision_{0U};
     uint64_t sequence_{0U};

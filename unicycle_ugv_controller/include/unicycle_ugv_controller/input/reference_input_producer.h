@@ -17,8 +17,9 @@ class ReferenceInputProducer {
     using EventSink = std::function<::state_machine::Status(::state_machine::Event)>;
 
     ReferenceInputProducer(ros::NodeHandle& nh, ReferenceCache& cache,
-                           std::string active_analytic_topic, std::string active_polynomial_topic,
-                           std::string active_sampled_topic, EventSink event_sink,
+                           const std::string& active_analytic_topic,
+                           const std::string& active_polynomial_topic,
+                           const std::string& active_sampled_topic, EventSink event_sink,
                            uint32_t queue_size);
 
    private:

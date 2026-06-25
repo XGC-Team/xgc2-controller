@@ -8,22 +8,20 @@ namespace unicycle_ugv_controller {
 namespace {
 
 template <typename Message>
-std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>> makePublishTask(std::string name,
-                                                                                 ros::Publisher pub,
-                                                                                 Message msg) {
+std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>> makePublishTask(
+    std::string name, const ros::Publisher& pub, Message msg) {
     return std::make_unique<::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
-        std::move(name), [pub = std::move(pub), msg = std::move(msg)](ros::NodeHandle&) mutable {
-            pub.publish(msg);
-        });
+        std::move(name),
+        [pub, msg = std::move(msg)](ros::NodeHandle&) mutable { pub.publish(msg); });
 }
 
 }  // namespace
 
 CmdVelOutputConsumer::CmdVelOutputConsumer(
     ros::NodeHandle& nh, ::state_machine::runtime::AsyncTaskExecutor<ros::NodeHandle>& executor,
-    UnicycleUgvController& controller, std::string cmd_vel_topic, uint32_t queue_size)
+    UnicycleUgvController& controller, const std::string& cmd_vel_topic, uint32_t queue_size)
     : executor_(executor), controller_(controller) {
-    cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>(std::move(cmd_vel_topic), queue_size);
+    cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>(cmd_vel_topic, queue_size);
 }
 
 bool CmdVelOutputConsumer::handle(const ::state_machine::Event& event) {

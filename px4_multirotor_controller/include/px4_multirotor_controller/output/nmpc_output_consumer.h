@@ -29,7 +29,7 @@ class NmpcOutputConsumer final : public ::state_machine::runtime::EventConsumer 
         uint64_t sequence{0};
         ros::Time now;
         SensorData sensor;
-        std::vector<multirotor_reference_trajectory::UavReferenceSample> references;
+        std::vector<Se3Reference> references;
     };
 
     void workerLoop();

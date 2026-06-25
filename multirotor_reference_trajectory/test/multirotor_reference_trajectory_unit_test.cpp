@@ -2,21 +2,21 @@
 
 #include <cmath>
 
-#include "multirotor_reference_trajectory/core/trajectory_core.h"
+#include <xgc2_math/trajectory.hpp>
 
 namespace {
+namespace trajectory = xgc2_math::trajectory;
 
 TEST(ReferenceTrajectoryCore, HeightCircleProvidesHighOrderDerivatives) {
-    multirotor_reference_trajectory::core::AnalyticParameters params;
-    params.type = multirotor_reference_trajectory::core::AnalyticType::kHeightCircle;
+    trajectory::CircleCurveParameters3 params;
     params.radius = 3.0;
     params.line_speed = 3.0;
     params.height = 3.0;
     params.z_amplitude = 1.0;
     params.z_frequency = 0.5;
 
-    multirotor_reference_trajectory::core::AnalyticEvaluator evaluator(params);
-    multirotor_reference_trajectory::core::FlatOutput output;
+    trajectory::CircleCurveEvaluator3 evaluator(params);
+    trajectory::FlatOutput3 output;
     ASSERT_TRUE(evaluator.evaluate(0.0, output));
     EXPECT_NEAR(output.position.x(), 3.0, 1e-12);
     EXPECT_NEAR(output.velocity.y(), 3.0, 1e-12);
@@ -26,10 +26,10 @@ TEST(ReferenceTrajectoryCore, HeightCircleProvidesHighOrderDerivatives) {
 }
 
 TEST(ReferenceTrajectoryCore, WaypointSolverProducesMinSnapPolynomial) {
-    multirotor_reference_trajectory::core::WaypointProblem problem;
+    trajectory::WaypointProblem3 problem;
     for (const auto& point : {Eigen::Vector3d(0.0, 0.0, 3.0), Eigen::Vector3d(1.0, 1.0, 3.5),
                               Eigen::Vector3d(2.0, 0.0, 3.0)}) {
-        multirotor_reference_trajectory::core::WaypointConstraint constraint;
+        trajectory::WaypointConstraint3 constraint;
         constraint.position = point;
         problem.constraints.push_back(constraint);
     }
@@ -41,16 +41,15 @@ TEST(ReferenceTrajectoryCore, WaypointSolverProducesMinSnapPolynomial) {
     problem.max_iterations = 80;
     problem.time_weight = 0.1;
 
-    multirotor_reference_trajectory::core::PiecewisePolynomialEvaluator evaluator;
+    trajectory::PiecewisePolynomialEvaluator3 evaluator;
     uint32_t flags = 0U;
-    ASSERT_TRUE(multirotor_reference_trajectory::core::MincoWaypointSolver().solve(
-        problem, evaluator, &flags));
+    ASSERT_TRUE(trajectory::MincoWaypointSolver3().solve(problem, evaluator, &flags));
     EXPECT_EQ(evaluator.order(), 5U);
     EXPECT_EQ(evaluator.segments().size(), 2U);
 
-    multirotor_reference_trajectory::core::FlatOutput start;
-    multirotor_reference_trajectory::core::FlatOutput middle;
-    multirotor_reference_trajectory::core::FlatOutput end;
+    trajectory::FlatOutput3 start;
+    trajectory::FlatOutput3 middle;
+    trajectory::FlatOutput3 end;
     ASSERT_TRUE(evaluator.evaluate(0.0, start));
     ASSERT_TRUE(evaluator.evaluate(evaluator.segments().front().duration, middle));
     ASSERT_TRUE(evaluator.evaluate(evaluator.duration(), end));
@@ -66,14 +65,14 @@ TEST(ReferenceTrajectoryCore, WaypointSolverProducesMinSnapPolynomial) {
 }
 
 TEST(ReferenceTrajectoryCore, WaypointSolverMovesRegionalInteriorPointAndOptimizesTime) {
-    multirotor_reference_trajectory::core::WaypointProblem problem;
-    multirotor_reference_trajectory::core::WaypointConstraint start;
+    trajectory::WaypointProblem3 problem;
+    trajectory::WaypointConstraint3 start;
     start.position = Eigen::Vector3d(0.0, 0.0, 3.0);
-    multirotor_reference_trajectory::core::WaypointConstraint middle;
-    middle.type = multirotor_reference_trajectory::core::WaypointConstraintType::kSphere;
+    trajectory::WaypointConstraint3 middle;
+    middle.type = trajectory::WaypointConstraintType3::kSphere;
     middle.position = Eigen::Vector3d(1.0, 0.8, 3.3);
     middle.size = Eigen::Vector3d(0.6, 0.0, 0.0);
-    multirotor_reference_trajectory::core::WaypointConstraint end;
+    trajectory::WaypointConstraint3 end;
     end.position = Eigen::Vector3d(2.0, 0.0, 3.0);
     problem.constraints = {start, middle, end};
     problem.segment_times = {1.0, 1.0};
@@ -82,26 +81,24 @@ TEST(ReferenceTrajectoryCore, WaypointSolverMovesRegionalInteriorPointAndOptimiz
     problem.limits.max_velocity = 6.0;
     problem.limits.max_acceleration = 12.0;
 
-    multirotor_reference_trajectory::core::PiecewisePolynomialEvaluator evaluator;
+    trajectory::PiecewisePolynomialEvaluator3 evaluator;
     uint32_t flags = 0U;
-    ASSERT_TRUE(multirotor_reference_trajectory::core::MincoWaypointSolver().solve(
-        problem, evaluator, &flags));
+    ASSERT_TRUE(trajectory::MincoWaypointSolver3().solve(problem, evaluator, &flags));
     ASSERT_EQ(evaluator.segments().size(), 2U);
     EXPECT_NEAR((evaluator.segments().front().duration + evaluator.segments().back().duration),
                 evaluator.duration(), 1e-9);
     EXPECT_GT(std::abs(evaluator.duration() - 2.0), 1e-3);
-    multirotor_reference_trajectory::core::FlatOutput middle_sample;
+    trajectory::FlatOutput3 middle_sample;
     ASSERT_TRUE(evaluator.evaluate(evaluator.segments().front().duration, middle_sample));
     EXPECT_LE((middle_sample.position - middle.position).norm(), middle.size.x() + 1e-6);
 }
 
 TEST(ReferenceTrajectoryCore, FlatnessMapperRejectsLowThrustSingularity) {
-    multirotor_reference_trajectory::core::FlatOutput flat;
+    trajectory::FlatOutput3 flat;
     flat.acceleration = -9.8066 * Eigen::Vector3d::UnitZ();
 
-    const auto mapped =
-        multirotor_reference_trajectory::core::FlatnessMapper(9.8066, 0.1).map(flat);
-    EXPECT_NE(mapped.flags & multirotor_reference_trajectory::core::kFlagLowThrust, 0U);
+    const auto mapped = trajectory::FlatnessMapper3(9.8066, 0.1).map(flat);
+    EXPECT_NE(mapped.flags & trajectory::kFlagLowThrust, 0U);
 }
 
 }  // namespace

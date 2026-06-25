@@ -56,7 +56,8 @@ void UavNmpcSolver::resetWarmStart() {
     }
 }
 
-bool UavNmpcSolver::solve(const Vector13d& x0, const std::vector<UavReferenceSample>& references) {
+bool UavNmpcSolver::solve(const Se3StateVector& x0,
+                          const std::vector<Se3Reference>& references) {
     if (!initialized_ && !initialize()) {
         return false;
     }
@@ -65,7 +66,7 @@ bool UavNmpcSolver::solve(const Vector13d& x0, const std::vector<UavReferenceSam
                   references.size());
         return false;
     }
-    if (!isFinite(x0)) {
+    if (!control::isFinite(x0)) {
         ROS_WARN_THROTTLE(1.0, "[UavNmpcSolver] Non-finite initial state");
         return false;
     }
@@ -96,7 +97,7 @@ bool UavNmpcSolver::solve(const Vector13d& x0, const std::vector<UavReferenceSam
     return true;
 }
 
-bool UavNmpcSolver::setInitialState(const Vector13d& x0) {
+bool UavNmpcSolver::setInitialState(const Se3StateVector& x0) {
     ocp_nlp_config* config = uav_nmpc_acados_get_nlp_config(capsule_);
     ocp_nlp_dims* dims = uav_nmpc_acados_get_nlp_dims(capsule_);
     ocp_nlp_in* in = uav_nmpc_acados_get_nlp_in(capsule_);
@@ -112,10 +113,10 @@ bool UavNmpcSolver::setInitialState(const Vector13d& x0) {
     return true;
 }
 
-bool UavNmpcSolver::setReference(int stage, const UavReferenceSample& reference) {
+bool UavNmpcSolver::setReference(int stage, const Se3Reference& reference) {
     Eigen::Matrix<double, UAV_NMPC_NP, 1> p;
-    p.segment<13>(0) = reference.x;
-    p.segment<4>(13) = reference.u;
+    p.segment<13>(0) = control::packState(reference.state);
+    p.segment<4>(13) = control::packControl(reference.control);
     const int status = uav_nmpc_acados_update_params(capsule_, stage, p.data(), UAV_NMPC_NP);
     if (status != 0) {
         ROS_ERROR("[UavNmpcSolver] Failed to update params at stage %d", stage);
@@ -124,8 +125,8 @@ bool UavNmpcSolver::setReference(int stage, const UavReferenceSample& reference)
     return true;
 }
 
-void UavNmpcSolver::setGuesses(const Vector13d& x0,
-                               const std::vector<UavReferenceSample>& references) {
+void UavNmpcSolver::setGuesses(const Se3StateVector& x0,
+                               const std::vector<Se3Reference>& references) {
     ocp_nlp_config* config = uav_nmpc_acados_get_nlp_config(capsule_);
     ocp_nlp_dims* dims = uav_nmpc_acados_get_nlp_dims(capsule_);
     ocp_nlp_in* in = uav_nmpc_acados_get_nlp_in(capsule_);
@@ -133,10 +134,12 @@ void UavNmpcSolver::setGuesses(const Vector13d& x0,
 
     if (!have_warm_start_) {
         for (int i = 0; i <= UAV_NMPC_N; ++i) {
-            x_guess_[static_cast<size_t>(i)] = references[static_cast<size_t>(i)].x;
+            x_guess_[static_cast<size_t>(i)] =
+                control::packState(references[static_cast<size_t>(i)].state);
         }
         for (int i = 0; i < UAV_NMPC_N; ++i) {
-            u_guess_[static_cast<size_t>(i)] = references[static_cast<size_t>(i)].u;
+            u_guess_[static_cast<size_t>(i)] =
+                control::packControl(references[static_cast<size_t>(i)].control);
         }
     }
     x_guess_[0] = x0;
@@ -168,7 +171,7 @@ void UavNmpcSolver::readSolution() {
     predicted_body_rate_ = x_solution_[1].segment<3>(10);
 }
 
-void UavNmpcSolver::shiftWarmStart(const std::vector<UavReferenceSample>& references) {
+void UavNmpcSolver::shiftWarmStart(const std::vector<Se3Reference>& references) {
     (void)references;
     for (int i = 0; i <= UAV_NMPC_N; ++i) {
         x_guess_[static_cast<size_t>(i)] = x_solution_[static_cast<size_t>(i)];

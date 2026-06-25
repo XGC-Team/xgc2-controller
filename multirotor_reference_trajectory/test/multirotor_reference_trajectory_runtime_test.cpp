@@ -79,7 +79,7 @@ TEST(ReferenceTrajectoryRuntime, WaypointPlanningUsesAsyncWorkerEvent) {
     ASSERT_TRUE(activated) << "state=" << static_cast<int>(runtime.currentState())
                            << " flags=" << runtime.flags();
     EXPECT_EQ(runtime.activeType(),
-              multirotor_reference_trajectory::core::TrajectoryModelType::kPolynomial);
+              multirotor_reference_trajectory::trajectory::TrajectoryModelType::kPolynomial);
     EXPECT_EQ(runtime.activeTrajectoryId(), request.trajectory_id);
     EXPECT_EQ(runtime.activeRevision(), request.revision);
     EXPECT_NE(runtime.evaluator(), nullptr);

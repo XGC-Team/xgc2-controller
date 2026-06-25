@@ -21,16 +21,17 @@ void NmpcTrackingBackend::exit() {
     solver_.resetWarmStart();
 }
 
-bool NmpcTrackingBackend::compute(
-    const UgvState& state,
-    const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs,
-    const ros::Time& now, ControlCommand& command) {
+bool NmpcTrackingBackend::compute(const UgvState& state, const std::vector<Se2Reference>& refs,
+                                  const ros::Time& now, ControlCommand& command) {
     if (!entered_ && !enter()) {
         status_ = -100;
         return false;
     }
-    Eigen::Matrix<double, 4, 1> x0;
-    x0 << state.x, state.y, state.yaw, state.speed;
+    control::Se2State feedback;
+    feedback.position << state.x, state.y;
+    feedback.yaw = state.yaw;
+    feedback.linear_speed = state.speed;
+    const Se2StateVector x0 = control::packState(feedback);
     const bool ok = solver_.solve(x0, refs);
     status_ = solver_.status();
     solve_time_ms_ = solver_.solveTimeMs();

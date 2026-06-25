@@ -90,13 +90,18 @@ docker run --rm \
     set +u
     source /opt/ros/noetic/setup.bash
     set -u
+    parallel_jobs="$(nproc)"
     PYTHONPATH=/workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools \
       python3 -B -m unittest discover \
         -s /workspace/work/src/xgc2-controller/unicycle_ugv_controller/tools/unicycle_nmpc/tests \
         -v
-    catkin_make run_tests_multirotor_reference_trajectory run_tests_px4_multirotor_controller run_tests_unicycle_reference_trajectory run_tests_unicycle_ugv_controller
+    catkin_make -j"${parallel_jobs}" -l"${parallel_jobs}" \
+      run_tests_multirotor_reference_trajectory \
+      run_tests_px4_multirotor_controller \
+      run_tests_unicycle_reference_trajectory \
+      run_tests_unicycle_ugv_controller
     catkin_test_results
-    DESTDIR=/workspace/work/install-root catkin_make install \
+    DESTDIR=/workspace/work/install-root catkin_make -j"${parallel_jobs}" -l"${parallel_jobs}" install \
       -DCMAKE_INSTALL_PREFIX=/opt/ros/noetic \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" \

@@ -12,13 +12,11 @@ namespace px4_multirotor_controller {
 namespace {
 
 template <typename Message>
-std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>> makePublishTask(std::string name,
-                                                                                 ros::Publisher pub,
-                                                                                 Message msg) {
+std::unique_ptr<::state_machine::runtime::Task<ros::NodeHandle>> makePublishTask(
+    std::string name, const ros::Publisher& pub, Message msg) {
     return std::make_unique<::state_machine::runtime::LambdaTask<ros::NodeHandle>>(
-        std::move(name), [pub = std::move(pub), msg = std::move(msg)](ros::NodeHandle&) mutable {
-            pub.publish(msg);
-        });
+        std::move(name),
+        [pub, msg = std::move(msg)](ros::NodeHandle&) mutable { pub.publish(msg); });
 }
 
 }  // namespace

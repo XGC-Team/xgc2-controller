@@ -55,7 +55,6 @@ required_files=(
   multirotor_reference_trajectory/msg/SampledReference.msg
   multirotor_reference_trajectory/msg/ActivePolynomialReference.msg
   multirotor_reference_trajectory/msg/ReferenceStatus.msg
-  multirotor_reference_trajectory/include/multirotor_reference_trajectory/core/trajectory_core.h
   multirotor_reference_trajectory/include/multirotor_reference_trajectory/multirotor_reference_trajectory_runtime.h
   multirotor_reference_trajectory/launch/uav_multirotor_reference_trajectory.launch
   unicycle_ugv_controller/CMakeLists.txt
@@ -70,7 +69,6 @@ required_files=(
   unicycle_reference_trajectory/msg/ActivePolynomialReference.msg
   unicycle_reference_trajectory/msg/PlanarReferencePoint.msg
   unicycle_reference_trajectory/msg/ReferenceStatus.msg
-  unicycle_reference_trajectory/include/unicycle_reference_trajectory/core/trajectory_core.h
   unicycle_reference_trajectory/include/unicycle_reference_trajectory/unicycle_reference_trajectory_runtime.h
   unicycle_reference_trajectory/launch/ugv_unicycle_reference_trajectory.launch
 )
@@ -88,7 +86,10 @@ grep -q "<name>px4_multirotor_controller</name>" px4_multirotor_controller/packa
 grep -q "<name>multirotor_reference_trajectory</name>" multirotor_reference_trajectory/package.xml
 grep -q "<name>unicycle_ugv_controller</name>" unicycle_ugv_controller/package.xml
 grep -q "<name>unicycle_reference_trajectory</name>" unicycle_reference_trajectory/package.xml
-grep -q "run_tests_multirotor_reference_trajectory run_tests_px4_multirotor_controller run_tests_unicycle_reference_trajectory run_tests_unicycle_ugv_controller" .github/workflows/build-debs.yml
+grep -q "run_tests_multirotor_reference_trajectory" .github/workflows/build-debs.yml
+grep -q "run_tests_px4_multirotor_controller" .github/workflows/build-debs.yml
+grep -q "run_tests_unicycle_reference_trajectory" .github/workflows/build-debs.yml
+grep -q "run_tests_unicycle_ugv_controller" .github/workflows/build-debs.yml
 grep -q "check_version_bump.sh --ci" .github/workflows/build-debs.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
 grep -q "px4_multirotor_controller" .xgc2/scripts/package_debs.sh
@@ -105,7 +106,7 @@ if grep -R --exclude='check_package_compliance.sh' "ros-noetic-xgc2-reference" \
 fi
 
 if grep -R --exclude='check_package_compliance.sh' \
-  -E "UavFlatTrajectory|UavBsplineTrajectory|nmpc_reference_trajectory|uav_reference_circle_entry|publish_uav_reference_trajectory|alg/reference_trajectory/(flat|bspline|activate)" \
+  -E "UavFlatTrajectory|UavBsplineTrajectory|nmpc_reference_trajectory|uav_reference_circle_entry|publish_uav_reference_trajectory|alg/reference_trajectory/(flat|bspline|activate)|core/trajectory_core|core/nmpc_reference" \
   .github .xgc2 README.md px4_multirotor_controller multirotor_reference_trajectory unicycle_ugv_controller unicycle_reference_trajectory >/dev/null; then
   echo "Deprecated reference trajectory interface found." >&2
   exit 1

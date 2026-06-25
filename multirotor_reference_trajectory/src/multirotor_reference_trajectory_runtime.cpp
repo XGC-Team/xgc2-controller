@@ -65,34 +65,17 @@ double adjustedStartTime(double requested, double now, double min_lead_time) {
     return std::max(requested, minimum);
 }
 
-core::AnalyticType analyticType(uint16_t value) {
-    switch (value) {
-        case AnalyticReference::ANALYTIC_HOLD:
-            return core::AnalyticType::kHold;
-        case AnalyticReference::ANALYTIC_CIRCLE:
-            return core::AnalyticType::kCircle;
-        case AnalyticReference::ANALYTIC_HEIGHT_CIRCLE:
-            return core::AnalyticType::kHeightCircle;
-        case AnalyticReference::ANALYTIC_CIRCLE_ENTRY:
-            return core::AnalyticType::kCircleEntry;
-        case AnalyticReference::ANALYTIC_FIGURE_EIGHT:
-            return core::AnalyticType::kFigureEight;
-        default:
-            return core::AnalyticType::kCircleEntry;
-    }
-}
-
-core::WaypointConstraintType constraintType(uint8_t value) {
+trajectory::WaypointConstraintType3 constraintType(uint8_t value) {
     switch (value) {
         case WaypointReferenceRequest::CONSTRAINT_SPHERE:
-            return core::WaypointConstraintType::kSphere;
+            return trajectory::WaypointConstraintType3::kSphere;
         case WaypointReferenceRequest::CONSTRAINT_BOX:
-            return core::WaypointConstraintType::kBox;
+            return trajectory::WaypointConstraintType3::kBox;
         case WaypointReferenceRequest::CONSTRAINT_GATE:
-            return core::WaypointConstraintType::kGate;
+            return trajectory::WaypointConstraintType3::kGate;
         case WaypointReferenceRequest::CONSTRAINT_POINT:
         default:
-            return core::WaypointConstraintType::kPoint;
+            return trajectory::WaypointConstraintType3::kPoint;
     }
 }
 
@@ -100,9 +83,13 @@ void appendCoefficients(const std::vector<double>& input, std::vector<double>& o
     output.insert(output.end(), input.begin(), input.end());
 }
 
+double paramAt(const AnalyticReference& msg, size_t index, double fallback) {
+    return index < msg.params.size() && std::isfinite(msg.params[index]) ? msg.params[index] : fallback;
+}
+
 bool buildWaypointProblemFromMessage(const WaypointReferenceRequest& msg,
                                      const ReferenceTrajectoryConfig& config,
-                                     core::WaypointProblem& problem, uint32_t& flags) {
+                                     trajectory::WaypointProblem3& problem, uint32_t& flags) {
     flags = msg.flags;
     problem.flags = msg.flags;
     problem.segment_times = msg.segment_times;
@@ -127,15 +114,15 @@ bool buildWaypointProblemFromMessage(const WaypointReferenceRequest& msg,
     problem.validation_sample_dt = config.validation_sample_dt;
     if ((!msg.constraint_types.empty() && msg.constraint_types.size() != msg.waypoints.size()) ||
         (!msg.region_size.empty() && msg.region_size.size() != msg.waypoints.size())) {
-        flags |= core::kFlagInvalidInput;
+        flags |= trajectory::kFlagInvalidInput;
         return false;
     }
     problem.constraints.reserve(msg.waypoints.size());
     for (size_t i = 0; i < msg.waypoints.size(); ++i) {
-        core::WaypointConstraint constraint;
+        trajectory::WaypointConstraint3 constraint;
         constraint.position = pointToVector(msg.waypoints[i].position);
         constraint.orientation = quaternionToEigen(msg.waypoints[i].orientation);
-        constraint.type = msg.constraint_types.empty() ? core::WaypointConstraintType::kPoint
+        constraint.type = msg.constraint_types.empty() ? trajectory::WaypointConstraintType3::kPoint
                                                        : constraintType(msg.constraint_types[i]);
         if (!msg.region_size.empty()) {
             constraint.size = vectorToEigen(msg.region_size[i]);
@@ -145,7 +132,7 @@ bool buildWaypointProblemFromMessage(const WaypointReferenceRequest& msg,
     if (problem.constraints.size() < 2U ||
         (!problem.segment_times.empty() &&
          problem.segment_times.size() + 1U != problem.constraints.size())) {
-        flags |= core::kFlagInvalidInput;
+        flags |= trajectory::kFlagInvalidInput;
         return false;
     }
     return true;
@@ -202,7 +189,7 @@ void ReferenceTrajectoryRuntime::reset() {
     current_time_sec_ = 0.0;
     flags_ = 0U;
     pending_kind_ = PendingKind::kNone;
-    active_type_ = core::TrajectoryModelType::kNone;
+    active_type_ = trajectory::TrajectoryModelType::kNone;
     active_trajectory_id_ = 0U;
     active_revision_ = 0U;
     active_start_sec_ = 0.0;
@@ -226,15 +213,15 @@ void ReferenceTrajectoryRuntime::update(double now_sec) {
     const auto tick_result =
         transition_result.status.ok() ? machine_->update({64, 64, true}) : transition_result;
     if (!tick_result.status.ok()) {
-        flags_ |= core::kFlagInvalidInput;
+        flags_ |= trajectory::kFlagInvalidInput;
         state_ = ReferenceStatus::STATE_FAULT;
     }
 }
 
 bool ReferenceTrajectoryRuntime::acceptAnalytic(const AnalyticReference& msg) {
-    core::AnalyticEvaluator evaluator;
     uint32_t flags = 0U;
-    if (!buildAnalyticEvaluator(msg, evaluator, flags)) {
+    auto evaluator = buildAnalyticEvaluator(msg, flags);
+    if (!evaluator) {
         flags_ |= flags;
         return false;
     }
@@ -254,7 +241,7 @@ bool ReferenceTrajectoryRuntime::acceptAnalytic(const AnalyticReference& msg) {
 }
 
 bool ReferenceTrajectoryRuntime::acceptSampled(const SampledReference& msg) {
-    core::SampledEvaluator evaluator;
+    trajectory::SampledEvaluator3 evaluator;
     uint32_t flags = 0U;
     if (!buildSampledEvaluator(msg, evaluator, flags)) {
         flags_ |= flags;
@@ -276,7 +263,7 @@ bool ReferenceTrajectoryRuntime::acceptSampled(const SampledReference& msg) {
 }
 
 bool ReferenceTrajectoryRuntime::acceptWaypoint(const WaypointReferenceRequest& msg) {
-    core::WaypointProblem problem;
+    trajectory::WaypointProblem3 problem;
     uint32_t flags = 0U;
     if (!buildWaypointProblem(msg, problem, flags)) {
         flags_ |= flags;
@@ -292,9 +279,9 @@ bool ReferenceTrajectoryRuntime::activatePending() {
         return active_evaluator_ != nullptr;
     }
     if (pending_kind_ == PendingKind::kAnalytic) {
-        auto evaluator = std::make_unique<core::AnalyticEvaluator>();
         uint32_t flags = 0U;
-        if (!buildAnalyticEvaluator(pending_analytic_, *evaluator, flags)) {
+        auto evaluator = buildAnalyticEvaluator(pending_analytic_, flags);
+        if (!evaluator) {
             flags_ |= flags;
             pending_kind_ = PendingKind::kNone;
             return false;
@@ -304,7 +291,7 @@ bool ReferenceTrajectoryRuntime::activatePending() {
         return true;
     }
     if (pending_kind_ == PendingKind::kSampled) {
-        auto evaluator = std::make_unique<core::SampledEvaluator>();
+        auto evaluator = std::make_unique<trajectory::SampledEvaluator3>();
         uint32_t flags = 0U;
         if (!buildSampledEvaluator(pending_sampled_, *evaluator, flags)) {
             flags_ |= flags;
@@ -317,12 +304,12 @@ bool ReferenceTrajectoryRuntime::activatePending() {
     }
     if (pending_kind_ == PendingKind::kWaypoint) {
         if (!has_completed_plan_ || !completed_plan_.success || !completed_plan_.evaluator) {
-            flags_ |= core::kFlagOptimizationFailure;
+            flags_ |= trajectory::kFlagOptimizationFailure;
             return false;
         }
         PlanningResult result = std::move(completed_plan_);
         has_completed_plan_ = false;
-        std::unique_ptr<core::TrajectoryEvaluator> evaluator = std::move(result.evaluator);
+        std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator = std::move(result.evaluator);
         setActivePolynomial(std::move(result.msg), std::move(evaluator), result.flags);
         pending_kind_ = PendingKind::kNone;
         return true;
@@ -332,7 +319,7 @@ bool ReferenceTrajectoryRuntime::activatePending() {
 
 bool ReferenceTrajectoryRuntime::requestPendingWaypointPlan() {
     if (pending_kind_ != PendingKind::kWaypoint) {
-        flags_ |= core::kFlagInvalidInput;
+        flags_ |= trajectory::kFlagInvalidInput;
         return false;
     }
     PlanningRequest request;
@@ -383,7 +370,7 @@ ReferenceTrajectoryRuntime::PlanningResult ReferenceTrajectoryRuntime::solveWayp
     result.generation = request.generation;
     result.flags = request.msg.flags;
 
-    core::WaypointProblem problem;
+    trajectory::WaypointProblem3 problem;
     uint32_t flags = 0U;
     if (!buildWaypointProblemFromMessage(request.msg, request.config, problem, flags)) {
         result.flags |= flags;
@@ -391,10 +378,10 @@ ReferenceTrajectoryRuntime::PlanningResult ReferenceTrajectoryRuntime::solveWayp
         return result;
     }
 
-    auto evaluator = std::make_unique<core::PiecewisePolynomialEvaluator>();
-    core::MincoWaypointSolver solver;
+    auto evaluator = std::make_unique<trajectory::PiecewisePolynomialEvaluator3>();
+    trajectory::MincoWaypointSolver3 solver;
     if (!solver.solve(problem, *evaluator, &flags)) {
-        result.flags |= flags | core::kFlagOptimizationFailure;
+        result.flags |= flags | trajectory::kFlagOptimizationFailure;
         result.success = false;
         return result;
     }
@@ -462,7 +449,7 @@ void ReferenceTrajectoryRuntime::drainPlanningResults(double now_sec) {
         event.correlation_id = expected_planning_sequence_;
         const auto status = postEvent(std::move(event));
         if (!status.ok()) {
-            flags_ |= core::kFlagInvalidInput;
+            flags_ |= trajectory::kFlagInvalidInput;
         }
     }
 }
@@ -496,11 +483,11 @@ ReferenceStatus ReferenceTrajectoryRuntime::makeStatus(double stamp_sec) const {
     status.active_trajectory_id = active_trajectory_id_;
     status.active_revision = active_revision_;
     status.active_type = ReferenceStatus::TYPE_NONE;
-    if (active_type_ == core::TrajectoryModelType::kAnalytic) {
+    if (active_type_ == trajectory::TrajectoryModelType::kAnalytic) {
         status.active_type = ReferenceStatus::TYPE_ANALYTIC;
-    } else if (active_type_ == core::TrajectoryModelType::kPolynomial) {
+    } else if (active_type_ == trajectory::TrajectoryModelType::kPolynomial) {
         status.active_type = ReferenceStatus::TYPE_POLYNOMIAL;
-    } else if (active_type_ == core::TrajectoryModelType::kSampled) {
+    } else if (active_type_ == trajectory::TrajectoryModelType::kSampled) {
         status.active_type = ReferenceStatus::TYPE_SAMPLED;
     }
     return status;
@@ -621,54 +608,101 @@ void ReferenceTrajectoryRuntime::setupMachine() {
     requireOk(machine_->start(), "start reference trajectory state machine");
 }
 
-bool ReferenceTrajectoryRuntime::buildAnalyticEvaluator(const AnalyticReference& msg,
-                                                        core::AnalyticEvaluator& evaluator,
-                                                        uint32_t& flags) const {
+std::unique_ptr<trajectory::TrajectoryEvaluator3> ReferenceTrajectoryRuntime::buildAnalyticEvaluator(
+    const AnalyticReference& msg, uint32_t& flags) const {
     flags = msg.flags;
-    core::AnalyticParameters params;
-    params.type = analyticType(msg.analytic_type);
-    params.flags = msg.flags;
-    params.duration = msg.duration > 0.0 ? msg.duration : 60.0;
-    params.origin = pointToVector(msg.origin.position);
-    params.origin_yaw = yawFromQuaternion(msg.origin.orientation);
-    if (!msg.params.empty()) {
-        params.radius = msg.params[0];
+    const double duration = msg.duration > 0.0 ? msg.duration : 60.0;
+    const Eigen::Vector3d origin = pointToVector(msg.origin.position);
+    const double origin_yaw = yawFromQuaternion(msg.origin.orientation);
+    const double radius = paramAt(msg, 0U, 3.0);
+    const double line_speed = paramAt(msg, 1U, 3.0);
+    const double height = paramAt(msg, 2U, 3.0);
+    const double z_amplitude = paramAt(msg, 3U, 1.0);
+    const double z_frequency = paramAt(msg, 4U, 0.5);
+    const double entry_duration = paramAt(msg, 5U, 5.0);
+    Eigen::Vector2d center = Eigen::Vector2d::Zero();
+    center.x() = paramAt(msg, 6U, center.x());
+    center.y() = paramAt(msg, 7U, center.y());
+
+    std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator;
+    switch (msg.analytic_type) {
+        case AnalyticReference::ANALYTIC_HOLD: {
+            trajectory::HoldCurveParameters3 params;
+            params.flags = msg.flags;
+            params.duration = duration;
+            params.position = origin;
+            params.position.z() = height;
+            params.yaw = origin_yaw;
+            evaluator = std::make_unique<trajectory::HoldCurveEvaluator3>(params);
+            break;
+        }
+        case AnalyticReference::ANALYTIC_CIRCLE:
+        case AnalyticReference::ANALYTIC_HEIGHT_CIRCLE: {
+            trajectory::CircleCurveParameters3 params;
+            params.flags = msg.flags;
+            params.duration = duration;
+            params.center = center;
+            params.radius = radius;
+            params.line_speed = line_speed;
+            params.height = height;
+            params.z_amplitude =
+                msg.analytic_type == AnalyticReference::ANALYTIC_HEIGHT_CIRCLE ? z_amplitude : 0.0;
+            params.z_frequency = z_frequency;
+            evaluator = std::make_unique<trajectory::CircleCurveEvaluator3>(params);
+            break;
+        }
+        case AnalyticReference::ANALYTIC_FIGURE_EIGHT: {
+            trajectory::FigureEightCurveParameters3 params;
+            params.flags = msg.flags;
+            params.duration = duration;
+            params.origin = origin;
+            params.radius = radius;
+            params.line_speed = line_speed;
+            params.height = height;
+            evaluator = std::make_unique<trajectory::FigureEightCurveEvaluator3>(params);
+            break;
+        }
+        case AnalyticReference::ANALYTIC_CIRCLE_ENTRY:
+        default: {
+            trajectory::CircleEntryCurveParameters3 params;
+            params.flags = msg.flags;
+            params.duration = duration;
+            params.origin = origin;
+            params.origin_yaw = origin_yaw;
+            params.entry_duration = entry_duration;
+            params.circle.flags = msg.flags;
+            params.circle.duration = std::max(0.0, duration - std::max(0.0, entry_duration));
+            params.circle.center = center;
+            params.circle.radius = radius;
+            params.circle.line_speed = line_speed;
+            params.circle.height = height;
+            params.circle.z_amplitude = z_amplitude;
+            params.circle.z_frequency = z_frequency;
+            evaluator = std::make_unique<trajectory::CircleEntryCurveEvaluator3>(params);
+            break;
+        }
     }
-    if (msg.params.size() > 1U) {
-        params.line_speed = msg.params[1];
+
+    if (!evaluator) {
+        flags |= trajectory::kFlagInvalidInput;
+        return nullptr;
     }
-    if (msg.params.size() > 2U) {
-        params.height = msg.params[2];
+    flags |= trajectory::TrajectoryValidator3::validate(*evaluator, config_.limits,
+                                                        config_.validation_sample_dt);
+    if ((flags & (trajectory::kFlagInvalidInput | trajectory::kFlagNonFinite)) != 0U) {
+        return nullptr;
     }
-    if (msg.params.size() > 3U) {
-        params.z_amplitude = msg.params[3];
-    }
-    if (msg.params.size() > 4U) {
-        params.z_frequency = msg.params[4];
-    }
-    if (msg.params.size() > 5U) {
-        params.entry_duration = msg.params[5];
-    }
-    if (msg.params.size() > 6U) {
-        params.center.x() = msg.params[6];
-    }
-    if (msg.params.size() > 7U) {
-        params.center.y() = msg.params[7];
-    }
-    evaluator = core::AnalyticEvaluator(params);
-    flags |= core::TrajectoryValidator::validate(evaluator, config_.limits,
-                                                 config_.validation_sample_dt);
-    return (flags & (core::kFlagInvalidInput | core::kFlagNonFinite)) == 0U;
+    return evaluator;
 }
 
 bool ReferenceTrajectoryRuntime::buildSampledEvaluator(const SampledReference& msg,
-                                                       core::SampledEvaluator& evaluator,
+                                                       trajectory::SampledEvaluator3& evaluator,
                                                        uint32_t& flags) const {
     flags = msg.flags;
-    std::vector<core::SampledPoint> samples;
+    std::vector<trajectory::SampledPoint3> samples;
     samples.reserve(msg.points.size());
     for (const auto& point : msg.points) {
-        core::SampledPoint sample;
+        trajectory::SampledPoint3 sample;
         sample.t = point.t_from_start;
         sample.flat.position = pointToVector(point.position);
         sample.flat.velocity = vectorToEigen(point.velocity);
@@ -681,37 +715,37 @@ bool ReferenceTrajectoryRuntime::buildSampledEvaluator(const SampledReference& m
         samples.push_back(sample);
     }
     if (!evaluator.setSamples(std::move(samples))) {
-        flags |= core::kFlagInvalidInput;
+        flags |= trajectory::kFlagInvalidInput;
         return false;
     }
-    flags |= core::TrajectoryValidator::validate(evaluator, config_.limits,
+    flags |= trajectory::TrajectoryValidator3::validate(evaluator, config_.limits,
                                                  config_.validation_sample_dt);
-    return (flags & (core::kFlagInvalidInput | core::kFlagNonFinite)) == 0U;
+    return (flags & (trajectory::kFlagInvalidInput | trajectory::kFlagNonFinite)) == 0U;
 }
 
 bool ReferenceTrajectoryRuntime::buildWaypointProblem(const WaypointReferenceRequest& msg,
-                                                      core::WaypointProblem& problem,
+                                                      trajectory::WaypointProblem3& problem,
                                                       uint32_t& flags) const {
     return buildWaypointProblemFromMessage(msg, config_, problem, flags);
 }
 
 void ReferenceTrajectoryRuntime::setActiveAnalytic(
-    const AnalyticReference& msg, std::unique_ptr<core::TrajectoryEvaluator> evaluator,
+    const AnalyticReference& msg, std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
     uint32_t flags) {
-    active_type_ = core::TrajectoryModelType::kAnalytic;
+    active_type_ = trajectory::TrajectoryModelType::kAnalytic;
     active_trajectory_id_ = msg.trajectory_id;
     active_revision_ = msg.revision;
     active_start_sec_ = msg.start_time.toSec();
-    active_duration_ = msg.duration;
+    active_duration_ = evaluator ? evaluator->duration() : 0.0;
     active_evaluator_ = std::move(evaluator);
     active_analytic_ = msg;
     flags_ = flags;
 }
 
 void ReferenceTrajectoryRuntime::setActiveSampled(
-    const SampledReference& msg, std::unique_ptr<core::TrajectoryEvaluator> evaluator,
+    const SampledReference& msg, std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
     uint32_t flags) {
-    active_type_ = core::TrajectoryModelType::kSampled;
+    active_type_ = trajectory::TrajectoryModelType::kSampled;
     active_trajectory_id_ = msg.trajectory_id;
     active_revision_ = msg.revision;
     active_start_sec_ = msg.start_time.toSec();
@@ -722,9 +756,9 @@ void ReferenceTrajectoryRuntime::setActiveSampled(
 }
 
 void ReferenceTrajectoryRuntime::setActivePolynomial(
-    ActivePolynomialReference msg, std::unique_ptr<core::TrajectoryEvaluator> evaluator,
+    ActivePolynomialReference msg, std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
     uint32_t flags) {
-    active_type_ = core::TrajectoryModelType::kPolynomial;
+    active_type_ = trajectory::TrajectoryModelType::kPolynomial;
     active_trajectory_id_ = msg.trajectory_id;
     active_revision_ = msg.revision;
     active_start_sec_ = msg.start_time.toSec();

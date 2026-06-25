@@ -3,8 +3,7 @@
 #include <Eigen/Dense>
 #include <array>
 #include <vector>
-
-#include "unicycle_reference_trajectory/core/nmpc_reference.h"
+#include <xgc2_math/control.hpp>
 
 extern "C" {
 #include "acados_c/ocp_nlp_interface.h"
@@ -12,6 +11,11 @@ extern "C" {
 }
 
 namespace unicycle_ugv_controller {
+
+namespace control = xgc2_math::control;
+using Se2ControlVector = control::Se2ControlVector;
+using Se2Reference = control::Se2Reference;
+using Se2StateVector = control::Se2StateVector;
 
 class UnicycleNmpcSolver {
    public:
@@ -23,10 +27,9 @@ class UnicycleNmpcSolver {
 
     bool initialize();
     void resetWarmStart();
-    bool solve(const Eigen::Matrix<double, 4, 1>& x0,
-               const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs);
+    bool solve(const Se2StateVector& x0, const std::vector<Se2Reference>& refs);
 
-    Eigen::Matrix<double, 2, 1> optimalControl() const {
+    Se2ControlVector optimalControl() const {
         return optimal_control_;
     }
     double predictedSpeed() const {
@@ -43,11 +46,9 @@ class UnicycleNmpcSolver {
     }
 
    private:
-    bool setInitialState(const Eigen::Matrix<double, 4, 1>& x0);
-    bool setReference(int stage, const unicycle_reference_trajectory::UnicycleReferenceSample& ref);
-    void setGuesses(
-        const Eigen::Matrix<double, 4, 1>& x0,
-        const std::vector<unicycle_reference_trajectory::UnicycleReferenceSample>& refs);
+    bool setInitialState(const Se2StateVector& x0);
+    bool setReference(int stage, const Se2Reference& ref);
+    void setGuesses(const Se2StateVector& x0, const std::vector<Se2Reference>& refs);
     void readSolution();
     void shiftWarmStart();
     void cleanup();
@@ -57,11 +58,11 @@ class UnicycleNmpcSolver {
     bool have_warm_start_{false};
     int solver_status_{-1};
     double solve_time_ms_{0.0};
-    std::array<Eigen::Matrix<double, 4, 1>, UNICYCLE_NMPC_N + 1> x_guess_{};
-    std::array<Eigen::Matrix<double, 2, 1>, UNICYCLE_NMPC_N> u_guess_{};
-    std::array<Eigen::Matrix<double, 4, 1>, UNICYCLE_NMPC_N + 1> x_solution_{};
-    std::array<Eigen::Matrix<double, 2, 1>, UNICYCLE_NMPC_N> u_solution_{};
-    Eigen::Matrix<double, 2, 1> optimal_control_{Eigen::Matrix<double, 2, 1>::Zero()};
+    std::array<Se2StateVector, UNICYCLE_NMPC_N + 1> x_guess_{};
+    std::array<Se2ControlVector, UNICYCLE_NMPC_N> u_guess_{};
+    std::array<Se2StateVector, UNICYCLE_NMPC_N + 1> x_solution_{};
+    std::array<Se2ControlVector, UNICYCLE_NMPC_N> u_solution_{};
+    Se2ControlVector optimal_control_{Se2ControlVector::Zero()};
     double predicted_speed_{0.0};
 };
 

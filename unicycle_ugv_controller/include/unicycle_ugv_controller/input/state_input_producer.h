@@ -14,7 +14,7 @@ class StateInputProducer {
    public:
     using EventSink = std::function<::state_machine::Status(::state_machine::Event)>;
 
-    StateInputProducer(ros::NodeHandle& nh, UgvState& state, std::string state_topic,
+    StateInputProducer(ros::NodeHandle& nh, UgvState& state, const std::string& state_topic,
                        EventSink event_sink, uint32_t queue_size);
 
    private:

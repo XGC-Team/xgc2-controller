@@ -3,9 +3,7 @@
 #include <Eigen/Dense>
 #include <array>
 #include <vector>
-
-#include "multirotor_reference_trajectory/core/nmpc_reference.h"
-#include "px4_multirotor_controller/nmpc/nmpc_math_utils.h"
+#include <xgc2_math/control.hpp>
 
 extern "C" {
 #include "acados_c/ocp_nlp_interface.h"
@@ -14,7 +12,10 @@ extern "C" {
 
 namespace px4_multirotor_controller {
 
-using multirotor_reference_trajectory::UavReferenceSample;
+namespace control = xgc2_math::control;
+using Se3ControlVector = control::Se3ControlVector;
+using Se3Reference = control::Se3Reference;
+using Se3StateVector = control::Se3StateVector;
 
 class UavNmpcSolver {
    public:
@@ -26,9 +27,9 @@ class UavNmpcSolver {
 
     bool initialize();
     void resetWarmStart();
-    bool solve(const Vector13d& x0, const std::vector<UavReferenceSample>& references);
+    bool solve(const Se3StateVector& x0, const std::vector<Se3Reference>& references);
 
-    Vector4d optimalControl() const {
+    Se3ControlVector optimalControl() const {
         return optimal_control_;
     }
     Eigen::Vector3d predictedBodyRate() const {
@@ -61,11 +62,11 @@ class UavNmpcSolver {
     }
 
    private:
-    bool setInitialState(const Vector13d& x0);
-    bool setReference(int stage, const UavReferenceSample& reference);
-    void setGuesses(const Vector13d& x0, const std::vector<UavReferenceSample>& references);
+    bool setInitialState(const Se3StateVector& x0);
+    bool setReference(int stage, const Se3Reference& reference);
+    void setGuesses(const Se3StateVector& x0, const std::vector<Se3Reference>& references);
     void readSolution();
-    void shiftWarmStart(const std::vector<UavReferenceSample>& references);
+    void shiftWarmStart(const std::vector<Se3Reference>& references);
     void cleanup();
 
     uav_nmpc_solver_capsule* capsule_{nullptr};
@@ -75,11 +76,11 @@ class UavNmpcSolver {
     double solve_time_ms_{0.0};
     double max_quaternion_norm_error_{0.0};
 
-    std::array<Vector13d, UAV_NMPC_N + 1> x_guess_{};
-    std::array<Vector4d, UAV_NMPC_N> u_guess_{};
-    std::array<Vector13d, UAV_NMPC_N + 1> x_solution_{};
-    std::array<Vector4d, UAV_NMPC_N> u_solution_{};
-    Vector4d optimal_control_{Vector4d::Zero()};
+    std::array<Se3StateVector, UAV_NMPC_N + 1> x_guess_{};
+    std::array<Se3ControlVector, UAV_NMPC_N> u_guess_{};
+    std::array<Se3StateVector, UAV_NMPC_N + 1> x_solution_{};
+    std::array<Se3ControlVector, UAV_NMPC_N> u_solution_{};
+    Se3ControlVector optimal_control_{Se3ControlVector::Zero()};
     Eigen::Vector3d predicted_body_rate_{Eigen::Vector3d::Zero()};
 };
 

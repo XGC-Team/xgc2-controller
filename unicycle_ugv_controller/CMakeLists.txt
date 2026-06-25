@@ -151,6 +151,7 @@ add_library(unicycle_ugv_controller_nmpc_runtime
 add_dependencies(unicycle_ugv_controller_nmpc_runtime unicycle_ugv_controller_nmpc_generated ${catkin_EXPORTED_TARGETS})
 target_link_libraries(unicycle_ugv_controller_nmpc_runtime
   unicycle_ugv_controller_nmpc_generated
+  xgc2_math::control
   ${catkin_LIBRARIES}
   "-Wl,--no-as-needed"
   ${UGV_ACADOS_LIBRARIES}
@@ -179,6 +180,8 @@ add_dependencies(${PROJECT_NAME}_node
 target_link_libraries(${PROJECT_NAME}_node
   unicycle_ugv_controller_nmpc_runtime
   xgc2_state_machine::state_machine
+  xgc2_math::control
+  xgc2_math::trajectory
   ${catkin_LIBRARIES}
   pthread)
 
@@ -214,6 +217,8 @@ if(CATKIN_ENABLE_TESTING)
     target_link_libraries(unicycle_ugv_controller_runtime_test
       unicycle_ugv_controller_nmpc_runtime
       xgc2_state_machine::state_machine
+      xgc2_math::control
+      xgc2_math::trajectory
       ${catkin_LIBRARIES}
       gtest_main)
   endif()

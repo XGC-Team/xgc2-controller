@@ -7,16 +7,16 @@
 namespace unicycle_ugv_controller {
 
 ReferenceInputProducer::ReferenceInputProducer(ros::NodeHandle& nh, ReferenceCache& cache,
-                                               std::string active_analytic_topic,
-                                               std::string active_polynomial_topic,
-                                               std::string active_sampled_topic,
+                                               const std::string& active_analytic_topic,
+                                               const std::string& active_polynomial_topic,
+                                               const std::string& active_sampled_topic,
                                                EventSink event_sink, uint32_t queue_size)
     : cache_(cache), event_sink_(std::move(event_sink)) {
-    active_analytic_sub_ = nh.subscribe(std::move(active_analytic_topic), queue_size,
+    active_analytic_sub_ = nh.subscribe(active_analytic_topic, queue_size,
                                         &ReferenceInputProducer::analyticCallback, this);
-    active_polynomial_sub_ = nh.subscribe(std::move(active_polynomial_topic), queue_size,
+    active_polynomial_sub_ = nh.subscribe(active_polynomial_topic, queue_size,
                                           &ReferenceInputProducer::polynomialCallback, this);
-    active_sampled_sub_ = nh.subscribe(std::move(active_sampled_topic), queue_size,
+    active_sampled_sub_ = nh.subscribe(active_sampled_topic, queue_size,
                                        &ReferenceInputProducer::sampledCallback, this);
 }
 

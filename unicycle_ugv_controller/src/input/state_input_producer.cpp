@@ -5,11 +5,10 @@
 namespace unicycle_ugv_controller {
 
 StateInputProducer::StateInputProducer(ros::NodeHandle& nh, UgvState& state,
-                                       std::string state_topic, EventSink event_sink,
+                                       const std::string& state_topic, EventSink event_sink,
                                        uint32_t queue_size)
     : state_(state), event_sink_(std::move(event_sink)) {
-    state_sub_ =
-        nh.subscribe(std::move(state_topic), queue_size, &StateInputProducer::stateCallback, this);
+    state_sub_ = nh.subscribe(state_topic, queue_size, &StateInputProducer::stateCallback, this);
 }
 
 void StateInputProducer::stateCallback(

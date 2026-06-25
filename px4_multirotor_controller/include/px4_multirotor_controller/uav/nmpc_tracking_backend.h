@@ -5,13 +5,10 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include "multirotor_reference_trajectory/core/nmpc_reference.h"
 #include "px4_multirotor_controller/drone_controller.h"
 #include "px4_multirotor_controller/nmpc/uav_nmpc_solver.h"
 
 namespace px4_multirotor_controller {
-
-using multirotor_reference_trajectory::UavReferenceSample;
 
 class UavNmpcTrackingBackend {
    public:
@@ -19,8 +16,7 @@ class UavNmpcTrackingBackend {
     bool enter(const SensorData& sensor);
     bool compute(const SensorData& sensor, const MpcTrajectoryState& reference,
                  const ros::Time& now, AttitudeRateTarget& target);
-    bool compute(const SensorData& sensor,
-                 const std::vector<multirotor_reference_trajectory::UavReferenceSample>& references,
+    bool compute(const SensorData& sensor, const std::vector<Se3Reference>& references,
                  const ros::Time& now, AttitudeRateTarget& target);
     void exit();
 
@@ -32,10 +28,10 @@ class UavNmpcTrackingBackend {
     }
 
    private:
-    bool feedbackState(const SensorData& sensor, Vector13d& x0) const;
-    std::vector<UavReferenceSample> buildReferenceHorizon(const MpcTrajectoryState& reference,
-                                                          const ros::Time& now) const;
-    UavReferenceSample sampleReference(const MpcTrajectoryState& reference, double dt) const;
+    bool feedbackState(const SensorData& sensor, Se3StateVector& x0) const;
+    std::vector<Se3Reference> buildReferenceHorizon(const MpcTrajectoryState& reference,
+                                                    const ros::Time& now) const;
+    Se3Reference sampleReference(const MpcTrajectoryState& reference, double dt) const;
     bool hoverThrustReady(const SensorData& sensor, const ros::Time& now) const;
     double mapSpecificThrustToNormalized(double specific_thrust, double hover_thrust) const;
 

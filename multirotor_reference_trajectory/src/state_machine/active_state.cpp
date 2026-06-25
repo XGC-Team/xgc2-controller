@@ -53,9 +53,9 @@ void ActiveState::publishActiveIfDue(::state_machine::StateContext& ctx) {
         return;
     }
     uint32_t event_id = output_event_type::PUBLISH_ACTIVE_POLYNOMIAL;
-    if (runtime_.activeType() == core::TrajectoryModelType::kAnalytic) {
+    if (runtime_.activeType() == trajectory::TrajectoryModelType::kAnalytic) {
         event_id = output_event_type::PUBLISH_ACTIVE_ANALYTIC;
-    } else if (runtime_.activeType() == core::TrajectoryModelType::kSampled) {
+    } else if (runtime_.activeType() == trajectory::TrajectoryModelType::kSampled) {
         event_id = output_event_type::PUBLISH_ACTIVE_SAMPLED;
     }
     ::state_machine::Event event(event_id, ::state_machine::EventTimestamp{runtime_.currentTime()});

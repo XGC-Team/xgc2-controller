@@ -27,7 +27,6 @@ std::string resolveTopicName(const ros::NodeHandle& nh, const std::string& topic
 DroneRosNode::DroneRosNode(ros::NodeHandle& nh)
     : nh_(nh),
       nh_private_("~"),
-      sensor_data_(),
       controller_(sensor_data_),  // 传递 sensor_data_ 引用给控制器
       output_event_executor_(nh) {
     ROS_INFO("[DroneRosNode] Initializing...");

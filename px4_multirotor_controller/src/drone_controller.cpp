@@ -355,7 +355,10 @@ void DroneController::logError(const char* format, ...) const {
 
 void DroneController::log(LogLevel level, const char* format, std::va_list args) const {
     std::array<char, 1024> buffer{};
-    std::vsnprintf(buffer.data(), buffer.size(), format, args);
+    std::va_list args_copy;
+    va_copy(args_copy, args);
+    std::vsnprintf(buffer.data(), buffer.size(), format, args_copy);
+    va_end(args_copy);
     switch (level) {
         case LogLevel::INFO:
             ROS_INFO("%s", buffer.data());

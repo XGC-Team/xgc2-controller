@@ -1,25 +1,27 @@
 #include <gtest/gtest.h>
 
-#include "multirotor_reference_trajectory/core/trajectory_core.h"
+#include <xgc2_math/trajectory.hpp>
 
 TEST(ReferenceTrajectorySmoke, AnalyticTypesSampleFiniteValues) {
-    for (const auto type : {multirotor_reference_trajectory::core::AnalyticType::kHold,
-                            multirotor_reference_trajectory::core::AnalyticType::kCircle,
-                            multirotor_reference_trajectory::core::AnalyticType::kHeightCircle,
-                            multirotor_reference_trajectory::core::AnalyticType::kCircleEntry,
-                            multirotor_reference_trajectory::core::AnalyticType::kFigureEight}) {
-        multirotor_reference_trajectory::core::AnalyticParameters params;
-        params.type = type;
-        params.radius = 3.0;
-        params.line_speed = 3.0;
-        params.height = 3.0;
-        params.z_amplitude = 1.0;
-        params.z_frequency = 0.5;
-        multirotor_reference_trajectory::core::AnalyticEvaluator evaluator(params);
-        multirotor_reference_trajectory::core::FlatOutput output;
-        EXPECT_TRUE(evaluator.evaluate(0.5, output));
-        EXPECT_TRUE(multirotor_reference_trajectory::core::TrajectoryValidator::finite(output));
-    }
+    namespace trajectory = xgc2_math::trajectory;
+    trajectory::FlatOutput3 output;
+
+    EXPECT_TRUE(trajectory::HoldCurveEvaluator3().evaluate(0.5, output));
+    EXPECT_TRUE(trajectory::TrajectoryValidator3::finite(output));
+
+    EXPECT_TRUE(trajectory::CircleCurveEvaluator3().evaluate(0.5, output));
+    EXPECT_TRUE(trajectory::TrajectoryValidator3::finite(output));
+
+    trajectory::CircleCurveParameters3 height_circle;
+    height_circle.z_amplitude = 1.0;
+    EXPECT_TRUE(trajectory::CircleCurveEvaluator3(height_circle).evaluate(0.5, output));
+    EXPECT_TRUE(trajectory::TrajectoryValidator3::finite(output));
+
+    EXPECT_TRUE(trajectory::CircleEntryCurveEvaluator3().evaluate(0.5, output));
+    EXPECT_TRUE(trajectory::TrajectoryValidator3::finite(output));
+
+    EXPECT_TRUE(trajectory::FigureEightCurveEvaluator3().evaluate(0.5, output));
+    EXPECT_TRUE(trajectory::TrajectoryValidator3::finite(output));
 }
 
 int main(int argc, char** argv) {

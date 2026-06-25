@@ -332,6 +332,7 @@ add_dependencies(px4_multirotor_controller_uav_nmpc_runtime ${catkin_EXPORTED_TA
 add_dependencies(px4_multirotor_controller_uav_nmpc_runtime px4_multirotor_controller_uav_nmpc_generated)
 target_link_libraries(px4_multirotor_controller_uav_nmpc_runtime
   px4_multirotor_controller_uav_nmpc_generated
+  xgc2_math::control
   ${catkin_LIBRARIES}
   "-Wl,--no-as-needed"
   ${MULTIROTOR_ACADOS_LIBRARIES}
@@ -384,7 +385,9 @@ add_dependencies(${PROJECT_NAME}_node
 target_link_libraries(${PROJECT_NAME}_node
   px4_multirotor_controller_uav_nmpc_runtime
   xgc2_state_machine::state_machine
+  xgc2_math::control
   xgc2_math::geometry
+  xgc2_math::trajectory
   ${catkin_LIBRARIES}
   pthread
 )
@@ -438,7 +441,9 @@ if(CATKIN_ENABLE_TESTING)
       px4_multirotor_controller_uav_nmpc_runtime
       ${catkin_LIBRARIES}
       gtest_main
+      xgc2_math::control
       xgc2_math::geometry
+      xgc2_math::trajectory
     )
   endif()
 endif()

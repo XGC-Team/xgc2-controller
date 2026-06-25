@@ -2,19 +2,19 @@
 
 #include <cmath>
 
-#include "unicycle_reference_trajectory/core/trajectory_core.h"
+#include <xgc2_math/trajectory.hpp>
 
 namespace {
+namespace trajectory = xgc2_math::trajectory;
 
 TEST(UnicycleReferenceTrajectoryCore, CircleProvidesUnicycleReferences) {
-    unicycle_reference_trajectory::core::AnalyticParameters params;
-    params.type = unicycle_reference_trajectory::core::AnalyticType::kCircle;
+    trajectory::CircleCurveParameters2 params;
     params.radius = 3.0;
     params.line_speed = 2.0;
     params.center = Eigen::Vector2d::Zero();
 
-    unicycle_reference_trajectory::core::AnalyticEvaluator evaluator(params);
-    unicycle_reference_trajectory::core::PlanarReference output;
+    trajectory::CircleCurveEvaluator2 evaluator(params);
+    trajectory::PlanarReference2 output;
     ASSERT_TRUE(evaluator.evaluate(0.0, output));
     EXPECT_NEAR(output.position.x(), 3.0, 1e-12);
     EXPECT_NEAR(output.speed, 2.0, 1e-12);
@@ -23,10 +23,10 @@ TEST(UnicycleReferenceTrajectoryCore, CircleProvidesUnicycleReferences) {
 }
 
 TEST(UnicycleReferenceTrajectoryCore, WaypointSolverProducesPlanarPolynomial) {
-    unicycle_reference_trajectory::core::WaypointProblem problem;
+    trajectory::WaypointProblem2 problem;
     for (const auto& point :
          {Eigen::Vector2d(0.0, 0.0), Eigen::Vector2d(1.0, 1.0), Eigen::Vector2d(2.0, 0.0)}) {
-        unicycle_reference_trajectory::core::WaypointConstraint constraint;
+        trajectory::WaypointConstraint2 constraint;
         constraint.position = point;
         problem.constraints.push_back(constraint);
     }
@@ -34,16 +34,15 @@ TEST(UnicycleReferenceTrajectoryCore, WaypointSolverProducesPlanarPolynomial) {
     problem.start_velocity = Eigen::Vector2d(0.2, 0.0);
     problem.end_velocity = Eigen::Vector2d(0.0, -0.2);
 
-    unicycle_reference_trajectory::core::PiecewisePolynomialEvaluator evaluator;
+    trajectory::PiecewisePolynomialEvaluator2 evaluator;
     uint32_t flags = 0U;
-    ASSERT_TRUE(unicycle_reference_trajectory::core::MincoWaypointSolver().solve(problem, evaluator,
-                                                                                 &flags));
+    ASSERT_TRUE(trajectory::MincoWaypointSolver2().solve(problem, evaluator, &flags));
     EXPECT_EQ(evaluator.order(), 7U);
     EXPECT_EQ(evaluator.segments().size(), 2U);
 
-    unicycle_reference_trajectory::core::PlanarReference start;
-    unicycle_reference_trajectory::core::PlanarReference middle;
-    unicycle_reference_trajectory::core::PlanarReference end;
+    trajectory::PlanarReference2 start;
+    trajectory::PlanarReference2 middle;
+    trajectory::PlanarReference2 end;
     ASSERT_TRUE(evaluator.evaluate(0.0, start));
     ASSERT_TRUE(evaluator.evaluate(2.0, middle));
     ASSERT_TRUE(evaluator.evaluate(4.0, end));
@@ -55,12 +54,10 @@ TEST(UnicycleReferenceTrajectoryCore, WaypointSolverProducesPlanarPolynomial) {
 }
 
 TEST(UnicycleReferenceTrajectoryCore, HoldReportsLowSpeedSingularity) {
-    unicycle_reference_trajectory::core::AnalyticParameters params;
-    params.type = unicycle_reference_trajectory::core::AnalyticType::kHold;
-    unicycle_reference_trajectory::core::AnalyticEvaluator evaluator(params);
-    unicycle_reference_trajectory::core::PlanarReference output;
+    trajectory::HoldCurveEvaluator2 evaluator;
+    trajectory::PlanarReference2 output;
     ASSERT_TRUE(evaluator.evaluate(0.0, output));
-    EXPECT_NE(output.flags & unicycle_reference_trajectory::core::kFlagLowSpeedSingularity, 0U);
+    EXPECT_NE(output.flags & trajectory::kFlagLowSpeedSingularity, 0U);
 }
 
 }  // namespace
