@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cstdarg>
+#include <array>
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <state_machine/state_machine.hpp>
@@ -81,14 +82,37 @@ class DroneController {
     ControllerConfig getConfig() const;
     void setConfig(const ControllerConfig& config);
 
-    void logInfo(const char* format, ...) const;
-    void logWarn(const char* format, ...) const;
-    void logError(const char* format, ...) const;
+    template <typename... Args>
+    void logInfo(const char* format, Args... args) const {
+        const auto buffer = formatLogMessage(format, args...);
+        emitLogInfo(buffer.data());
+    }
+    template <typename... Args>
+    void logWarn(const char* format, Args... args) const {
+        const auto buffer = formatLogMessage(format, args...);
+        emitLogWarn(buffer.data());
+    }
+    template <typename... Args>
+    void logError(const char* format, Args... args) const {
+        const auto buffer = formatLogMessage(format, args...);
+        emitLogError(buffer.data());
+    }
 
    private:
-    enum class LogLevel { INFO, WARN, ERROR };
+    template <typename... Args>
+    static std::array<char, 1024> formatLogMessage(const char* format, Args... args) {
+        std::array<char, 1024> buffer{};
+        if constexpr (sizeof...(Args) == 0) {
+            std::snprintf(buffer.data(), buffer.size(), "%s", format == nullptr ? "" : format);
+        } else {
+            std::snprintf(buffer.data(), buffer.size(), format, args...);
+        }
+        return buffer;
+    }
 
-    void log(LogLevel level, const char* format, std::va_list args) const;
+    void emitLogInfo(const char* message) const;
+    void emitLogWarn(const char* message) const;
+    void emitLogError(const char* message) const;
 
     // 状态机（拥有所有状态的所有权）
     std::unique_ptr<::state_machine::StateMachine> state_machine_;

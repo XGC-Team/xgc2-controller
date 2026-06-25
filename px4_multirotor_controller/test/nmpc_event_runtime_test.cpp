@@ -143,8 +143,8 @@ TEST(UavNmpcSolver, SolvesHoverEquilibrium) {
     hover.control.angular_acceleration.setZero();
 
     Se3StateVector x0 = control::packState(hover.state);
-    std::vector<Se3Reference> references(
-        static_cast<size_t>(UavNmpcSolver::horizonSteps() + 2), hover);
+    std::vector<Se3Reference> references(static_cast<size_t>(UavNmpcSolver::horizonSteps() + 2),
+                                         hover);
     EXPECT_TRUE(solver.solve(x0, references)) << "status=" << solver.status();
     EXPECT_NEAR(solver.optimalControl()(0), 9.8066, 1e-3);
     EXPECT_NEAR(solver.predictedBodyRate().norm(), 0.0, 1e-3);

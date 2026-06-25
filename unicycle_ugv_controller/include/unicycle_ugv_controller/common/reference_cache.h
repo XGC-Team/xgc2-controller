@@ -24,9 +24,8 @@ class ReferenceCache {
                        const ros::Time& received_time);
     void clear();
     bool valid(const ros::Time& now, double timeout) const;
-    bool sampleHorizon(
-        const ros::Time& now, double stage_dt, int horizon_steps, double timeout,
-        std::vector<xgc2_math::control::Se2Reference>& refs) const;
+    bool sampleHorizon(const ros::Time& now, double stage_dt, int horizon_steps, double timeout,
+                       std::vector<xgc2_math::control::Se2Reference>& refs) const;
 
    private:
     bool activeLocked(const ros::Time& now, double timeout) const;

@@ -382,8 +382,9 @@ void ReferenceTrajectoryRuntime::setupMachine() {
     requireOk(machine_->start(), "start reference trajectory state machine");
 }
 
-std::unique_ptr<trajectory::TrajectoryEvaluator2> ReferenceTrajectoryRuntime::buildAnalyticEvaluator(
-    const AnalyticReference& msg, uint32_t& flags) const {
+std::unique_ptr<trajectory::TrajectoryEvaluator2>
+ReferenceTrajectoryRuntime::buildAnalyticEvaluator(const AnalyticReference& msg,
+                                                   uint32_t& flags) const {
     flags = msg.flags;
     const double duration = msg.duration > 0.0 ? msg.duration : 60.0;
     const Eigen::Vector2d origin = pointToVector(msg.origin.position);
@@ -482,7 +483,7 @@ bool ReferenceTrajectoryRuntime::buildSampledEvaluator(const SampledReference& m
         return false;
     }
     flags |= trajectory::TrajectoryValidator2::validate(evaluator, config_.limits,
-                                                 config_.validation_sample_dt);
+                                                        config_.validation_sample_dt);
     return (flags & (trajectory::kFlagInvalidInput | trajectory::kFlagNonFinite)) == 0U;
 }
 
@@ -516,7 +517,7 @@ bool ReferenceTrajectoryRuntime::buildWaypointProblem(const WaypointReferenceReq
         trajectory::WaypointConstraint2 constraint;
         constraint.position = pointToVector(msg.waypoints[i].position);
         constraint.yaw = yawFromQuaternion(msg.waypoints[i].orientation);
-        constraint.type = msg.constraint_types.empty() ? trajectory::WaypointConstraint2Type::kPoint
+        constraint.type = msg.constraint_types.empty() ? trajectory::WaypointConstraintType2::kPoint
                                                        : constraintType(msg.constraint_types[i]);
         if (!msg.region_size.empty()) {
             constraint.size = vectorToEigen(msg.region_size[i]);

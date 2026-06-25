@@ -84,7 +84,8 @@ void appendCoefficients(const std::vector<double>& input, std::vector<double>& o
 }
 
 double paramAt(const AnalyticReference& msg, size_t index, double fallback) {
-    return index < msg.params.size() && std::isfinite(msg.params[index]) ? msg.params[index] : fallback;
+    return index < msg.params.size() && std::isfinite(msg.params[index]) ? msg.params[index]
+                                                                         : fallback;
 }
 
 bool buildWaypointProblemFromMessage(const WaypointReferenceRequest& msg,
@@ -608,8 +609,9 @@ void ReferenceTrajectoryRuntime::setupMachine() {
     requireOk(machine_->start(), "start reference trajectory state machine");
 }
 
-std::unique_ptr<trajectory::TrajectoryEvaluator3> ReferenceTrajectoryRuntime::buildAnalyticEvaluator(
-    const AnalyticReference& msg, uint32_t& flags) const {
+std::unique_ptr<trajectory::TrajectoryEvaluator3>
+ReferenceTrajectoryRuntime::buildAnalyticEvaluator(const AnalyticReference& msg,
+                                                   uint32_t& flags) const {
     flags = msg.flags;
     const double duration = msg.duration > 0.0 ? msg.duration : 60.0;
     const Eigen::Vector3d origin = pointToVector(msg.origin.position);
@@ -719,7 +721,7 @@ bool ReferenceTrajectoryRuntime::buildSampledEvaluator(const SampledReference& m
         return false;
     }
     flags |= trajectory::TrajectoryValidator3::validate(evaluator, config_.limits,
-                                                 config_.validation_sample_dt);
+                                                        config_.validation_sample_dt);
     return (flags & (trajectory::kFlagInvalidInput | trajectory::kFlagNonFinite)) == 0U;
 }
 

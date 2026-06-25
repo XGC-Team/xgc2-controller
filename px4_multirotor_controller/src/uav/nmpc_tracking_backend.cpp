@@ -89,21 +89,19 @@ bool UavNmpcTrackingBackend::compute(const SensorData& sensor,
         const Se3StateVector ref0_x = control::packState(references.front().state);
         const Se3ControlVector ref0_u = control::packControl(references.front().control);
         const Se3StateVector ref1_x = control::packState(references[1].state);
-        const Eigen::Vector3d position_error =
-            x0.segment<3>(0) - ref0_x.segment<3>(0);
-        ROS_WARN_THROTTLE(
-            1.0,
-            "[UavNmpcTrackingBackend] input debug: x0_p=[%.3f %.3f %.3f] "
-            "x0_v=[%.3f %.3f %.3f] x0_q=[%.3f %.3f %.3f %.3f] "
-            "x0_w=[%.3f %.3f %.3f] ref0_p=[%.3f %.3f %.3f] "
-            "ref0_v=[%.3f %.3f %.3f] ref0_q=[%.3f %.3f %.3f %.3f] "
-            "ref0_w=[%.3f %.3f %.3f] ref0_u=[%.3f %.3f %.3f %.3f] "
-            "ref1_p=[%.3f %.3f %.3f] pos_err_norm=%.3f",
-            x0(0), x0(1), x0(2), x0(3), x0(4), x0(5), x0(6), x0(7), x0(8), x0(9), x0(10), x0(11),
-            x0(12), ref0_x(0), ref0_x(1), ref0_x(2), ref0_x(3), ref0_x(4), ref0_x(5),
-            ref0_x(6), ref0_x(7), ref0_x(8), ref0_x(9), ref0_x(10), ref0_x(11), ref0_x(12),
-            ref0_u(0), ref0_u(1), ref0_u(2), ref0_u(3), ref1_x(0), ref1_x(1), ref1_x(2),
-            position_error.norm());
+        const Eigen::Vector3d position_error = x0.segment<3>(0) - ref0_x.segment<3>(0);
+        ROS_WARN_THROTTLE(1.0,
+                          "[UavNmpcTrackingBackend] input debug: x0_p=[%.3f %.3f %.3f] "
+                          "x0_v=[%.3f %.3f %.3f] x0_q=[%.3f %.3f %.3f %.3f] "
+                          "x0_w=[%.3f %.3f %.3f] ref0_p=[%.3f %.3f %.3f] "
+                          "ref0_v=[%.3f %.3f %.3f] ref0_q=[%.3f %.3f %.3f %.3f] "
+                          "ref0_w=[%.3f %.3f %.3f] ref0_u=[%.3f %.3f %.3f %.3f] "
+                          "ref1_p=[%.3f %.3f %.3f] pos_err_norm=%.3f",
+                          x0(0), x0(1), x0(2), x0(3), x0(4), x0(5), x0(6), x0(7), x0(8), x0(9),
+                          x0(10), x0(11), x0(12), ref0_x(0), ref0_x(1), ref0_x(2), ref0_x(3),
+                          ref0_x(4), ref0_x(5), ref0_x(6), ref0_x(7), ref0_x(8), ref0_x(9),
+                          ref0_x(10), ref0_x(11), ref0_x(12), ref0_u(0), ref0_u(1), ref0_u(2),
+                          ref0_u(3), ref1_x(0), ref1_x(1), ref1_x(2), position_error.norm());
     }
 
     if (config_.nmpc.enable_timing_log &&
@@ -128,8 +126,8 @@ bool UavNmpcTrackingBackend::compute(const SensorData& sensor,
             omega_cmd.y(), omega_cmd.z(), sensor.hover_thrust_estimate,
             solver_.maxQuaternionNormError(), success ? "true" : "false", x0(0), x0(1), x0(2),
             ref0_x(0), ref0_x(1), ref0_x(2), refn_x(0), refn_x(1), refn_x(2), pos_err.x(),
-            pos_err.y(), pos_err.z(), vel_err.x(), vel_err.y(), vel_err.z(), ref0_u(0),
-            ref0_u(1), ref0_u(2), ref0_u(3));
+            pos_err.y(), pos_err.z(), vel_err.x(), vel_err.y(), vel_err.z(), ref0_u(0), ref0_u(1),
+            ref0_u(2), ref0_u(3));
         last_log_time_ = now;
     }
 

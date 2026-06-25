@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-
 #include <xgc2_math/trajectory.hpp>
 
 namespace {

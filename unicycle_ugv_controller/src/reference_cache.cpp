@@ -246,9 +246,8 @@ bool ReferenceCache::valid(const ros::Time& now, double timeout) const {
     return activeLocked(now, timeout);
 }
 
-bool ReferenceCache::sampleHorizon(
-    const ros::Time& now, double stage_dt, int horizon_steps, double timeout,
-    std::vector<control::Se2Reference>& refs) const {
+bool ReferenceCache::sampleHorizon(const ros::Time& now, double stage_dt, int horizon_steps,
+                                   double timeout, std::vector<control::Se2Reference>& refs) const {
     if (horizon_steps <= 0 || !std::isfinite(stage_dt) || stage_dt <= 0.0) {
         return false;
     }

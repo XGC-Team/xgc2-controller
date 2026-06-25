@@ -117,16 +117,19 @@ class ReferenceTrajectoryRuntime {
     void clearPlanningQueuesLocked();
     std::unique_ptr<trajectory::TrajectoryEvaluator3> buildAnalyticEvaluator(
         const AnalyticReference& msg, uint32_t& flags) const;
-    bool buildSampledEvaluator(const SampledReference& msg, trajectory::SampledEvaluator3& evaluator,
-                               uint32_t& flags) const;
-    bool buildWaypointProblem(const WaypointReferenceRequest& msg, trajectory::WaypointProblem3& problem,
-                              uint32_t& flags) const;
+    bool buildSampledEvaluator(const SampledReference& msg,
+                               trajectory::SampledEvaluator3& evaluator, uint32_t& flags) const;
+    bool buildWaypointProblem(const WaypointReferenceRequest& msg,
+                              trajectory::WaypointProblem3& problem, uint32_t& flags) const;
     void setActiveAnalytic(const AnalyticReference& msg,
-                           std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
+                           std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
+                           uint32_t flags);
     void setActiveSampled(const SampledReference& msg,
-                          std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
+                          std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
+                          uint32_t flags);
     void setActivePolynomial(ActivePolynomialReference msg,
-                             std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator, uint32_t flags);
+                             std::unique_ptr<trajectory::TrajectoryEvaluator3> evaluator,
+                             uint32_t flags);
 
     ReferenceTrajectoryConfig config_{};
     std::unique_ptr<::state_machine::StateMachine> machine_;

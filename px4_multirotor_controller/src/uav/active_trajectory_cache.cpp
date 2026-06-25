@@ -155,9 +155,9 @@ bool ActiveTrajectoryCache::sample(const ros::Time& now, double timeout,
     return true;
 }
 
-bool ActiveTrajectoryCache::sampleHorizon(
-    const ros::Time& now, double stage_dt, int horizon_steps, double timeout, double gravity,
-    std::vector<control::Se3Reference>& references) const {
+bool ActiveTrajectoryCache::sampleHorizon(const ros::Time& now, double stage_dt, int horizon_steps,
+                                          double timeout, double gravity,
+                                          std::vector<control::Se3Reference>& references) const {
     if (horizon_steps <= 0 || stage_dt <= 0.0) {
         return false;
     }
@@ -251,8 +251,7 @@ bool ActiveTrajectoryCache::finiteVector(const Eigen::Vector3d& value) {
 }
 
 std::unique_ptr<trajectory::TrajectoryEvaluator3> ActiveTrajectoryCache::buildAnalyticEvaluator(
-    const multirotor_reference_trajectory::AnalyticReference& msg,
-    uint32_t& flags) {
+    const multirotor_reference_trajectory::AnalyticReference& msg, uint32_t& flags) {
     flags = msg.flags;
     const double duration = msg.duration > 0.0 ? msg.duration : 60.0;
     const Eigen::Vector3d origin = toVector(msg.origin.position);

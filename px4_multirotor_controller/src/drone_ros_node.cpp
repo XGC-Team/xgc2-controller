@@ -7,11 +7,11 @@
 #include <memory>
 #include <utility>
 
-#include "geometry/math_helpers.h"
 #include "px4_multirotor_controller/output/control_output_consumer.h"
 #include "px4_multirotor_controller/output/debug_output_consumer.h"
 #include "px4_multirotor_controller/output/nmpc_output_consumer.h"
 #include "px4_multirotor_controller/output/reference_activation_output_consumer.h"
+#include "xgc2_math/geometry/math_helpers.h"
 
 namespace px4_multirotor_controller {
 namespace {

@@ -14,8 +14,8 @@ class NmpcTrackingBackend {
     void configure(const ControllerConfig& config);
     bool enter();
     void exit();
-    bool compute(const UgvState& state, const std::vector<Se2Reference>& refs,
-                 const ros::Time& now, ControlCommand& command);
+    bool compute(const UgvState& state, const std::vector<Se2Reference>& refs, const ros::Time& now,
+                 ControlCommand& command);
     int status() const {
         return status_;
     }

@@ -2,9 +2,6 @@
 
 #include <ros/ros.h>
 
-#include <array>
-#include <cstdarg>
-#include <cstdio>
 #include <stdexcept>
 
 #include "px4_multirotor_controller/common/sensor_checks.h"
@@ -332,44 +329,16 @@ void DroneController::setConfig(const ControllerConfig& config) {
     config_ = config;
 }
 
-void DroneController::logInfo(const char* format, ...) const {
-    std::va_list args;
-    va_start(args, format);
-    log(LogLevel::INFO, format, args);
-    va_end(args);
+void DroneController::emitLogInfo(const char* message) const {
+    ROS_INFO("%s", message);
 }
 
-void DroneController::logWarn(const char* format, ...) const {
-    std::va_list args;
-    va_start(args, format);
-    log(LogLevel::WARN, format, args);
-    va_end(args);
+void DroneController::emitLogWarn(const char* message) const {
+    ROS_WARN("%s", message);
 }
 
-void DroneController::logError(const char* format, ...) const {
-    std::va_list args;
-    va_start(args, format);
-    log(LogLevel::ERROR, format, args);
-    va_end(args);
-}
-
-void DroneController::log(LogLevel level, const char* format, std::va_list args) const {
-    std::array<char, 1024> buffer{};
-    std::va_list args_copy;
-    va_copy(args_copy, args);
-    std::vsnprintf(buffer.data(), buffer.size(), format, args_copy);
-    va_end(args_copy);
-    switch (level) {
-        case LogLevel::INFO:
-            ROS_INFO("%s", buffer.data());
-            break;
-        case LogLevel::WARN:
-            ROS_WARN("%s", buffer.data());
-            break;
-        case LogLevel::ERROR:
-            ROS_ERROR("%s", buffer.data());
-            break;
-    }
+void DroneController::emitLogError(const char* message) const {
+    ROS_ERROR("%s", message);
 }
 
 }  // namespace px4_multirotor_controller

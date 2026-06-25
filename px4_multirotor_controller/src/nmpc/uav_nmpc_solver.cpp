@@ -56,8 +56,7 @@ void UavNmpcSolver::resetWarmStart() {
     }
 }
 
-bool UavNmpcSolver::solve(const Se3StateVector& x0,
-                          const std::vector<Se3Reference>& references) {
+bool UavNmpcSolver::solve(const Se3StateVector& x0, const std::vector<Se3Reference>& references) {
     if (!initialized_ && !initialize()) {
         return false;
     }

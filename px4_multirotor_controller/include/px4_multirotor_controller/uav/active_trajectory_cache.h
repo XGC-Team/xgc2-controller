@@ -39,9 +39,9 @@ class ActiveTrajectoryCache {
     void clear();
 
     bool sample(const ros::Time& now, double timeout, UavReferencePoint& sample) const;
-    bool sampleHorizon(
-        const ros::Time& now, double stage_dt, int horizon_steps, double timeout, double gravity,
-        std::vector<xgc2_math::control::Se3Reference>& references) const;
+    bool sampleHorizon(const ros::Time& now, double stage_dt, int horizon_steps, double timeout,
+                       double gravity,
+                       std::vector<xgc2_math::control::Se3Reference>& references) const;
 
     uint64_t sequence() const;
     uint32_t trajectoryId() const;
@@ -52,14 +52,13 @@ class ActiveTrajectoryCache {
    private:
     static bool finiteVector(const Eigen::Vector3d& value);
     static std::unique_ptr<xgc2_math::trajectory::TrajectoryEvaluator3> buildAnalyticEvaluator(
-        const multirotor_reference_trajectory::AnalyticReference& msg,
-        uint32_t& flags);
+        const multirotor_reference_trajectory::AnalyticReference& msg, uint32_t& flags);
     static bool buildPolynomialEvaluator(
         const multirotor_reference_trajectory::ActivePolynomialReference& msg,
         xgc2_math::trajectory::PiecewisePolynomialEvaluator3& evaluator, uint32_t& flags);
-    static bool buildSampledEvaluator(
-        const multirotor_reference_trajectory::SampledReference& msg,
-        xgc2_math::trajectory::SampledEvaluator3& evaluator, uint32_t& flags);
+    static bool buildSampledEvaluator(const multirotor_reference_trajectory::SampledReference& msg,
+                                      xgc2_math::trajectory::SampledEvaluator3& evaluator,
+                                      uint32_t& flags);
     static UavReferencePoint toPoint(const xgc2_math::trajectory::FlatOutput3& flat, double t);
     static xgc2_math::control::Se3Reference toNmpcReference(
         const xgc2_math::trajectory::FullStateReference3& full);
