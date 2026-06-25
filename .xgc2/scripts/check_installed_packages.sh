@@ -22,7 +22,7 @@ test "$(rospack find unicycle_reference_trajectory)" = "/opt/ros/${ROS_DISTRO}/s
 test "$(rospack find unicycle_ugv_controller)" = "/opt/ros/${ROS_DISTRO}/share/unicycle_ugv_controller"
 test "$(rospack find estimator_vrpn_px4_rotor_state)" = "/opt/ros/${ROS_DISTRO}/share/estimator_vrpn_px4_rotor_state"
 test "$(rospack find estimator_vrpn_ugv_state)" = "/opt/ros/${ROS_DISTRO}/share/estimator_vrpn_ugv_state"
-test -f "/opt/ros/${ROS_DISTRO}/share/multirotor_reference_trajectory/config/reference_trajectory.yaml"
+test -f "/opt/ros/${ROS_DISTRO}/share/multirotor_reference_trajectory/config/multirotor_reference_trajectory.yaml"
 test -f "/opt/ros/${ROS_DISTRO}/share/multirotor_reference_trajectory/launch/uav_multirotor_reference_trajectory.launch"
 test -f "/opt/ros/${ROS_DISTRO}/include/multirotor_reference_trajectory/core/trajectory_core.h"
 test -f "/opt/ros/${ROS_DISTRO}/include/multirotor_reference_trajectory/AnalyticReference.h"
