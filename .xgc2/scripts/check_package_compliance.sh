@@ -77,11 +77,11 @@ git ls-files --stage ugv-controller | grep -q '^160000 '
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
 grep -Eq '^version: [0-9]+\.[0-9]+\.[0-9]+-[0-9]+$' .xgc2/product.yml
-grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.0.1-1)" .xgc2/product.yml
+grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.0.2-1)" .xgc2/product.yml
 grep -q "ros-noetic-xgc2-ugv-controller (>= 1.0.0-1)" .xgc2/product.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
 grep -q "Architecture: all" .xgc2/scripts/package_debs.sh
-grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.0.1-1)" .xgc2/scripts/package_debs.sh
+grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.0.2-1)" .xgc2/scripts/package_debs.sh
 grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.0.0-1)" .xgc2/scripts/package_debs.sh
 grep -q "check_version_bump.sh --ci" .github/workflows/build-debs.yml
 
