@@ -52,7 +52,6 @@ jobs:
           dpkg-deb -c debs/*.deb
 
       - name: Upload deb artifact
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: xgc2-controller-debs
@@ -60,7 +59,7 @@ jobs:
 
   publish-apt:
     name: Publish APT
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_apt
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_apt)
     needs: package-compliance
     runs-on: ubuntu-latest
     env:
