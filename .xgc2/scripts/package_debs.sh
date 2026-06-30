@@ -58,7 +58,7 @@ Section: metapackages
 Priority: optional
 Architecture: all
 Maintainer: XGC2 <apt@example.com>
-Depends: ros-${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.0.11-1), ros-${ROS_DISTRO}-xgc2-ugv-controller (>= 1.0.0-1)
+Depends: ros-${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.0.13-1), ros-${ROS_DISTRO}-xgc2-ugv-controller (>= 1.0.0-1)
 Description: XGC2 ROS1 controller aggregate metapackage
  This metapackage installs the split multirotor and UGV controller products.
 EOF
