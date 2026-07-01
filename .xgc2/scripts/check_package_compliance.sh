@@ -84,7 +84,16 @@ grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_d
 grep -q "Architecture: all" .xgc2/scripts/package_debs.sh
 grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.1.15-1)" .xgc2/scripts/package_debs.sh
 grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.1.1-1)" .xgc2/scripts/package_debs.sh
-grep -q "check_version_bump.sh --ci" .github/workflows/ci.yml
+
+grep -q "cpp-quality:" .github/workflows/ci.yml
+grep -q "check_cpp_quality.sh" .github/workflows/ci.yml
+if grep -q "check_version_bump.sh --ci" .github/workflows/ci.yml; then
+  echo "Push CI must not require version bumps; release orchestration owns version bumps." >&2
+  exit 1
+fi
 grep -q "check_version_bump.sh --ci" .github/workflows/release.yml
+grep -q "run_cpp_quality:" .github/workflows/release.yml
+grep -q "run_source_tests:" .github/workflows/release.yml
+[[ "$(grep -c "default: false" .github/workflows/release.yml)" -ge 3 ]]
 
 echo "Package compliance checks passed."
