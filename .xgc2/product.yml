@@ -16,8 +16,8 @@ apt:
   packages:
     - ros-noetic-xgc2-controller
   depends:
-    - ros-noetic-xgc2-multirotor-controller (>= 1.0.15-1)
-    - ros-noetic-xgc2-ugv-controller (>= 1.0.1-1)
+    - ros-noetic-xgc2-multirotor-controller (>= 1.1.15-1)
+    - ros-noetic-xgc2-ugv-controller (>= 1.1.1-1)
 
 usage:
   install: |
