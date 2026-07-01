@@ -12,6 +12,22 @@ defaults:
     shell: bash
 
 jobs:
+  cpp-quality:
+    name: C++ quality
+    runs-on: ubuntu-latest
+    container: ros:noetic-ros-base-focal
+    steps:
+      - name: Install quality dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends git
+
+      - uses: actions/checkout@v4
+
+      - name: Run C++ quality gate
+        run: .xgc2/scripts/check_cpp_quality.sh
+
   package-compliance:
     name: Aggregate package compliance
     runs-on: ubuntu-latest
