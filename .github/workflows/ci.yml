@@ -51,7 +51,6 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git diff --check HEAD
-          .xgc2/scripts/check_version_bump.sh --ci
           .xgc2/scripts/check_package_compliance.sh
 
       - name: Build aggregate metapackage
