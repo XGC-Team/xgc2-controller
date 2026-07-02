@@ -1,7 +1,7 @@
 schema: xgc2.product.v1
 id: xgc2-controller
 name: XGC2 Controller Aggregate
-version: 1.3.14-5
+version: 1.3.14-6
 kind: ros1-apt
 summary: Aggregate ROS1 controller package that depends on the split XGC2 multirotor
   and UGV controller products.
@@ -15,8 +15,8 @@ apt:
   packages:
   - ros-noetic-xgc2-controller
   depends:
-  - ros-noetic-xgc2-multirotor-controller (>= 1.1.15-4)
-  - ros-noetic-xgc2-ugv-controller (>= 1.1.1-4)
+  - ros-noetic-xgc2-multirotor-controller (>= 1.1.15-5)
+  - ros-noetic-xgc2-ugv-controller (>= 1.1.1-5)
 usage:
   install: 'sudo apt update
 
