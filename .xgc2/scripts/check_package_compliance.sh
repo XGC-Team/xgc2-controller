@@ -78,12 +78,12 @@ git ls-files --stage ugv-controller | grep -q '^160000 '
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
 grep -Eq '^version: [0-9]+\.[0-9]+\.[0-9]+-[0-9]+$' .xgc2/product.yml
-grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.1.15-5)" .xgc2/product.yml
-grep -q "ros-noetic-xgc2-ugv-controller (>= 1.1.1-5)" .xgc2/product.yml
+grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.1.15-6)" .xgc2/product.yml
+grep -q "ros-noetic-xgc2-ugv-controller (>= 1.1.1-6)" .xgc2/product.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
 grep -q "Architecture: all" .xgc2/scripts/package_debs.sh
-grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.1.15-5)" .xgc2/scripts/package_debs.sh
-grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.1.1-5)" .xgc2/scripts/package_debs.sh
+grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.1.15-6)" .xgc2/scripts/package_debs.sh
+grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.1.1-6)" .xgc2/scripts/package_debs.sh
 
 grep -q "cpp-quality:" .github/workflows/ci.yml
 grep -q "check_cpp_quality.sh" .github/workflows/ci.yml
