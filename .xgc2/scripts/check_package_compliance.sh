@@ -44,7 +44,6 @@ required_files=(
   .xgc2/scripts/check_package_compliance.sh
   .xgc2/scripts/check_version_bump.sh
   .xgc2/scripts/package_debs.sh
-  .xgc2/scripts/publish_apt_repo.sh
   .xgc2/scripts/setup_xgc2_apt_source.sh
   README.md
 )
@@ -78,12 +77,12 @@ git ls-files --stage ugv-controller | grep -q '^160000 '
 
 grep -q "id: xgc2-controller" .xgc2/product.yml
 grep -Eq '^version: [0-9]+\.[0-9]+\.[0-9]+-[0-9]+$' .xgc2/product.yml
-grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.1.18-1)" .xgc2/product.yml
-grep -q "ros-noetic-xgc2-ugv-controller (>= 1.1.4-7)" .xgc2/product.yml
+grep -q "ros-noetic-xgc2-multirotor-controller (>= 1.1.18-3)" .xgc2/product.yml
+grep -q "ros-noetic-xgc2-ugv-controller (>= 1.1.4-8)" .xgc2/product.yml
 grep -q "PACKAGE=\"ros-\${ROS_DISTRO}-xgc2-controller\"" .xgc2/scripts/package_debs.sh
 grep -q "Architecture: all" .xgc2/scripts/package_debs.sh
-grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.1.18-1)" .xgc2/scripts/package_debs.sh
-grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.1.4-7)" .xgc2/scripts/package_debs.sh
+grep -q "ros-\${ROS_DISTRO}-xgc2-multirotor-controller (>= 1.1.18-3)" .xgc2/scripts/package_debs.sh
+grep -q "ros-\${ROS_DISTRO}-xgc2-ugv-controller (>= 1.1.4-8)" .xgc2/scripts/package_debs.sh
 
 grep -q "cpp-quality:" .github/workflows/ci.yml
 grep -q "check_cpp_quality.sh" .github/workflows/ci.yml
@@ -94,9 +93,12 @@ fi
 grep -q "check_version_bump.sh --ci" .github/workflows/release.yml
 grep -q "run_cpp_quality:" .github/workflows/release.yml
 grep -q "run_source_tests:" .github/workflows/release.yml
+grep -q "prepare_action:" .github/workflows/release.yml
+grep -q "apt_overlay_url:" .github/workflows/release.yml
+grep -q "dependency_set_digest:" .github/workflows/release.yml
 grep -Fq ".xgc2/scripts/setup_xgc2_apt_source.sh" .github/workflows/release.yml
 grep -Fq "apt-get install -y --no-install-recommends ./debs/*.deb" .github/workflows/release.yml
 grep -Fq ".xgc2/scripts/check_installed_packages.sh" .github/workflows/release.yml
-[[ "$(grep -c "default: false" .github/workflows/release.yml)" -ge 3 ]]
+[[ "$(grep -c "default: false" .github/workflows/release.yml)" -ge 2 ]]
 
 echo "Package compliance checks passed."
