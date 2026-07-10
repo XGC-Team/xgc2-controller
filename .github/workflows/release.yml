@@ -77,6 +77,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
+            ca-certificates \
             dpkg-dev \
             fakeroot \
             git
@@ -143,6 +144,16 @@ jobs:
         run: |
           dpkg-deb -I debs/*.deb
           dpkg-deb -c debs/*.deb
+
+      - name: Install-check aggregate against release APT
+        env:
+          XGC2_APT_DISTRIBUTION: focal
+          XGC2_APT_COMPONENT: main
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          .xgc2/scripts/setup_xgc2_apt_source.sh
+          apt-get install -y --no-install-recommends ./debs/*.deb
+          .xgc2/scripts/check_installed_packages.sh
 
       - name: Upload deb artifact
         uses: actions/upload-artifact@v4
