@@ -33,7 +33,7 @@ ownership:
   - /usr/share/doc/ros-noetic-xgc2-controller
 release:
   dependency_policy:
-    xgc2-multirotor-controller: order
-    xgc2-ugv-controller: order
+    xgc2-multirotor-controller: rebuild
+    xgc2-ugv-controller: rebuild
   apt_versions:
     focal: 1.3.16-13
