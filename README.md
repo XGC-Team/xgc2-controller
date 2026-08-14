@@ -6,8 +6,8 @@ This repository no longer owns controller source code directly. It pins the spli
 controller products as submodules and publishes `ros-noetic-xgc2-controller` as a
 small metapackage:
 
-- `multirotor-controller` -> `lxk36/xgc2-multirotor-controller`
-- `ugv-controller` -> `lxk36/xgc2-ugv-controller`
+- `multirotor-controller` -> `XGC-Team/xgc2-multirotor-controller`
+- `ugv-controller` -> `XGC-Team/xgc2-ugv-controller`
 
 Install the aggregate package when a deployment needs both controller families:
 

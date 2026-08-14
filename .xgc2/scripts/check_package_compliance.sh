@@ -67,10 +67,10 @@ for path in \
 done
 
 git config -f .gitmodules --get submodule.multirotor-controller.url \
-  | grep -qx 'git@github.com:lxk36/xgc2-multirotor-controller.git'
+  | grep -qx 'git@github.com:XGC-Team/xgc2-multirotor-controller.git'
 git config -f .gitmodules --get submodule.multirotor-controller.branch | grep -qx noetic
 git config -f .gitmodules --get submodule.ugv-controller.url \
-  | grep -qx 'git@github.com:lxk36/xgc2-ugv-controller.git'
+  | grep -qx 'git@github.com:XGC-Team/xgc2-ugv-controller.git'
 git config -f .gitmodules --get submodule.ugv-controller.branch | grep -qx noetic
 git ls-files --stage multirotor-controller | grep -q '^160000 '
 git ls-files --stage ugv-controller | grep -q '^160000 '
