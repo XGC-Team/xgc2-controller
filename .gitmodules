@@ -1,8 +1,8 @@
 [submodule "multirotor-controller"]
 	path = multirotor-controller
-	url = git@github.com:lxk36/xgc2-multirotor-controller.git
+	url = git@github.com:XGC-Team/xgc2-multirotor-controller.git
 	branch = noetic
 [submodule "ugv-controller"]
 	path = ugv-controller
-	url = git@github.com:lxk36/xgc2-ugv-controller.git
+	url = git@github.com:XGC-Team/xgc2-ugv-controller.git
 	branch = noetic

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-DOCKER_IMAGE="${DOCKER_IMAGE:-ros:noetic-ros-base-focal}"
+DOCKER_IMAGE="${DOCKER_IMAGE:-ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0}"
 WORK_DIR="${WORK_DIR:-${REPO_ROOT}/.work/docker}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/debs}"
 INSTALL_CHECK="${INSTALL_CHECK:-true}"
@@ -52,18 +52,19 @@ docker run --rm \
     set -euo pipefail
 
     export DEBIAN_FRONTEND=noninteractive
-    /workspace/xgc2-controller/.xgc2/scripts/setup_xgc2_apt_source.sh
-    apt-get install -y --no-install-recommends \
-      ca-certificates \
-      dpkg-dev \
-      fakeroot \
-      git
+    for pkg in ca-certificates dpkg-dev fakeroot git; do
+      if ! dpkg -s "${pkg}" >/dev/null 2>&1; then
+        echo "image is missing ${pkg}; use xgc2-build-focal-ros-noetic" >&2
+        exit 1
+      fi
+    done
 
     /workspace/xgc2-controller/.xgc2/scripts/check_package_compliance.sh
     /workspace/xgc2-controller/.xgc2/scripts/package_debs.sh \
       --output-dir /workspace/out
 
     if [[ "${INSTALL_CHECK}" == "true" ]]; then
+      /workspace/xgc2-controller/.xgc2/scripts/setup_xgc2_apt_source.sh
       apt-get install -y /workspace/out/*.deb
       /workspace/xgc2-controller/.xgc2/scripts/check_installed_packages.sh
     fi

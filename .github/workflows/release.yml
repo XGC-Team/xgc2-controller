@@ -101,18 +101,8 @@ jobs:
     name: Aggregate package compliance
     needs: validate-release-inputs
     runs-on: ubuntu-latest
-    container: ros:noetic-ros-base-focal
+    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0
     steps:
-      - name: Install packaging dependencies
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            ca-certificates \
-            dpkg-dev \
-            fakeroot \
-            git
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2

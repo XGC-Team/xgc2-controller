@@ -15,33 +15,20 @@ jobs:
   cpp-quality:
     name: C++ quality
     runs-on: ubuntu-latest
-    container: ros:noetic-ros-base-focal
+    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0
     steps:
-      - name: Install quality dependencies
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends git
-
       - uses: actions/checkout@v4
 
       - name: Run C++ quality gate
-        run: .xgc2/scripts/check_cpp_quality.sh
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          .xgc2/scripts/check_cpp_quality.sh
 
   package-compliance:
     name: Aggregate package compliance
     runs-on: ubuntu-latest
-    container: ros:noetic-ros-base-focal
+    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0
     steps:
-      - name: Install packaging dependencies
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            dpkg-dev \
-            fakeroot \
-            git
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
