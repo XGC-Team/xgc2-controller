@@ -29,16 +29,6 @@ on:
         required: false
         default: ""
         type: string
-      run_cpp_quality:
-        description: Run C++ quality checks
-        required: true
-        default: false
-        type: boolean
-      run_source_tests:
-        description: Run source tests
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   actions: read
@@ -79,7 +69,6 @@ jobs:
             echo "apt_overlay_url requires a dependency_set_digest" >&2
             exit 1
           fi
-
   validate-release-inputs:
     needs: prepare-contract
     name: Validate release inputs
@@ -88,15 +77,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Validate expected version and source SHA
-        run: |
-          set -euo pipefail
-          actual_version="$(awk -F': *' '/^version:[[:space:]]*/ {print $2; exit}' .xgc2/product.yml)"
-          actual_sha="$(git rev-parse HEAD)"
-          test "${actual_version}" = "${{ inputs.expected_version }}"
-          test "${actual_sha}" = "${{ inputs.expected_source_sha }}"
-
   package-compliance:
     name: Aggregate package compliance
     needs: validate-release-inputs
@@ -107,6 +87,17 @@ jobs:
         with:
           fetch-depth: 2
           submodules: false
+
+
+
+      - name: Validate expected version and source SHA
+        run: |
+          set -euo pipefail
+          actual_version="$(awk -F': *' '/^version:[[:space:]]*/ {print $2; exit}' .xgc2/product.yml)"
+          actual_sha="$(git rev-parse HEAD)"
+          test "${actual_version}" = "${{ inputs.expected_version }}"
+          test "${actual_sha}" = "${{ inputs.expected_source_sha }}"
+
 
       - name: Check aggregate metadata
         run: |
