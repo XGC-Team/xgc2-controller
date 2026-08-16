@@ -93,21 +93,23 @@ jobs:
       - name: Validate expected version and source SHA
         run: |
           set -euo pipefail
+          git config --global --add safe.directory "$PWD"
           actual_version="$(awk -F': *' '/^version:[[:space:]]*/ {print $2; exit}' .xgc2/product.yml)"
-          actual_sha="$(git rev-parse HEAD)"
+          actual_sha="$(git --git-dir="$PWD/.git" --work-tree="$PWD" rev-parse HEAD)"
           test "${actual_version}" = "${{ inputs.expected_version }}"
           test "${actual_sha}" = "${{ inputs.expected_source_sha }}"
 
 
       - name: Check aggregate metadata
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git diff --check HEAD
+          set -euo pipefail
+          git config --global --add safe.directory "$PWD"
+          git --git-dir="$PWD/.git" --work-tree="$PWD" diff --check HEAD
           .xgc2/scripts/check_version_bump.sh --ci
           .xgc2/scripts/check_package_compliance.sh
 
       - name: Build aggregate metapackage
-        run: .xgc2/scripts/package_debs.sh --output-dir "$GITHUB_WORKSPACE/debs"
+        run: .xgc2/scripts/package_debs.sh --output-dir "$PWD/debs"
 
       - name: Create release-train build manifest
         run: |

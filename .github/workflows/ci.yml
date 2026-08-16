@@ -31,18 +31,20 @@ jobs:
 
       - name: Run C++ quality gate
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          set -euo pipefail
+          git config --global --add safe.directory "$PWD"
           .xgc2/scripts/check_cpp_quality.sh
 
 
       - name: Check aggregate metadata
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git diff --check HEAD
+          set -euo pipefail
+          git config --global --add safe.directory "$PWD"
+          git --git-dir="$PWD/.git" --work-tree="$PWD" diff --check HEAD
           .xgc2/scripts/check_package_compliance.sh
 
       - name: Build aggregate metapackage
-        run: .xgc2/scripts/package_debs.sh --output-dir "$GITHUB_WORKSPACE/debs"
+        run: .xgc2/scripts/package_debs.sh --output-dir "$PWD/debs"
 
       - name: Create trusted build manifest
         run: |
