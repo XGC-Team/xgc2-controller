@@ -91,14 +91,15 @@ if grep -q "check_version_bump.sh --ci" .github/workflows/ci.yml; then
   exit 1
 fi
 grep -q "check_version_bump.sh --ci" .github/workflows/release.yml
-grep -q "run_cpp_quality:" .github/workflows/release.yml
-grep -q "run_source_tests:" .github/workflows/release.yml
+if grep -Eq "run_(cpp_quality|source_tests):" .github/workflows/release.yml; then
+  echo "Release workflow must not expose source-quality switches." >&2
+  exit 1
+fi
 grep -q "prepare_action:" .github/workflows/release.yml
 grep -q "apt_overlay_url:" .github/workflows/release.yml
 grep -q "dependency_set_digest:" .github/workflows/release.yml
 grep -Fq ".xgc2/scripts/setup_xgc2_apt_source.sh" .github/workflows/release.yml
 grep -Fq "apt-get install -y --no-install-recommends ./debs/*.deb" .github/workflows/release.yml
 grep -Fq ".xgc2/scripts/check_installed_packages.sh" .github/workflows/release.yml
-[[ "$(grep -c "default: false" .github/workflows/release.yml)" -ge 2 ]]
 
 echo "Package compliance checks passed."
