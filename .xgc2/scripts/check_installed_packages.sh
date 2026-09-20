@@ -17,7 +17,7 @@ test "$(rospack find unicycle_reference_trajectory)" = "/opt/ros/${ROS_DISTRO}/s
 test "$(rospack find unicycle_ugv_controller)" = "/opt/ros/${ROS_DISTRO}/share/unicycle_ugv_controller"
 
 roslaunch --files multirotor_reference_trajectory uav_multirotor_reference_trajectory.launch >/tmp/xgc2-multirotor-reference-files.txt
-roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch >/tmp/xgc2-px4-controller-files.txt
+roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch world_boundary_json:=null >/tmp/xgc2-px4-controller-files.txt
 roslaunch --files unicycle_reference_trajectory ugv_unicycle_reference_trajectory.launch >/tmp/xgc2-unicycle-reference-files.txt
 roslaunch --files unicycle_ugv_controller ugv_unicycle_nmpc_controller.launch >/tmp/xgc2-unicycle-controller-files.txt
 

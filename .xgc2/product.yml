@@ -23,7 +23,7 @@ usage:
     sudo apt install ros-noetic-xgc2-controller
 
     '
-  smoke_test: 'roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch
+  smoke_test: 'roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch world_boundary_json:=null
 
     roslaunch --files unicycle_ugv_controller ugv_unicycle_nmpc_controller.launch
 
