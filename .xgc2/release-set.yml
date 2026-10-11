@@ -1,0 +1,20 @@
+schema: xgc2.release-set.v1
+id: controller-catalog-20261011-1
+distribution: focal
+component: main
+architectures:
+- amd64
+- arm64
+packages:
+  multirotor_controller:
+    repo: XGC-Team/xgc2-multirotor-controller
+    ref: noetic
+    workflow: release.yml
+    apt: ros-noetic-xgc2-multirotor-controller
+    version: 1.2.0-2
+  ugv_controller:
+    repo: XGC-Team/xgc2-ugv-controller
+    ref: noetic
+    workflow: release.yml
+    apt: ros-noetic-xgc2-ugv-controller
+    version: 2.1.0-1

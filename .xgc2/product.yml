@@ -1,39 +1,17 @@
 schema: xgc2.product.v1
 id: xgc2-controller
-name: XGC2 Controller Aggregate
+name: XGC2 Controller Catalog
 version: 1.4.0-2
-kind: ros1-apt
-summary: Aggregate ROS1 controller package that depends on the split XGC2 multirotor
-  and UGV controller products.
+kind: catalog
+summary: Non-publishing catalog for the split XGC2 ROS1 controller products.
+groups:
+- controller
 ros:
   distro: noetic
   packages: []
-apt:
-  distribution: focal
-  install:
-  - ros-noetic-xgc2-controller
-  packages:
-  - ros-noetic-xgc2-controller
-  depends:
-  - ros-noetic-xgc2-multirotor-controller (>= 1.2.0-1)
-  - ros-noetic-xgc2-ugv-controller (>= 2.1.0-1)
 usage:
-  install: 'sudo apt update
-
-    sudo apt install ros-noetic-xgc2-controller
-
-    '
-  smoke_test: 'roslaunch --files px4_multirotor_controller uav_nmpc_controller.launch world_boundary_json:=null
-
-    roslaunch --files unicycle_ugv_controller ugv_unicycle_nmpc_controller.launch
-
-    '
-ownership:
-  paths:
-  - /usr/share/doc/ros-noetic-xgc2-controller
-release:
-  dependency_policy:
-    xgc2-multirotor-controller: rebuild
-    xgc2-ugv-controller: rebuild
-  apt_versions:
-    focal: 1.4.0-2
+  notes: |
+    This repository records the controller product set and its compatible
+    versions. It does not build, install, or publish an aggregate Debian
+    package. Consumers install the independent products they use:
+    ros-noetic-xgc2-multirotor-controller and ros-noetic-xgc2-ugv-controller.

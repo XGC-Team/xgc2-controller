@@ -2,8 +2,6 @@ name: ci
 
 on:
   push:
-    branches:
-      - noetic
   pull_request:
   workflow_dispatch:
 
@@ -11,69 +9,31 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
-  cpp-quality:
-    name: C++ quality
+  compliance:
     runs-on: ubuntu-latest
-    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0
-    steps:
-      - uses: actions/checkout@v4
-  package-compliance:
-    name: Aggregate package compliance
-    runs-on: ubuntu-latest
-    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-ros-noetic:1.0.0
+    container: ghcr.io/xgc-team/xgc2-images/xgc2-build-focal-dev:1.0.0
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          submodules: false
 
-
-      - name: Run C++ quality gate
+      - name: Run metadata checks
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "$PWD"
-          .xgc2/scripts/check_cpp_quality.sh
-
-
-      - name: Check aggregate metadata
-        run: |
-          set -euo pipefail
-          git config --global --add safe.directory "$PWD"
-          git --git-dir="$PWD/.git" --work-tree="$PWD" diff --check HEAD
-          .xgc2/scripts/check_package_compliance.sh
-
-      - name: Build aggregate metapackage
-        run: .xgc2/scripts/package_debs.sh --output-dir "$PWD/debs"
-
-      - name: Create trusted build manifest
-        run: |
-          product_version="$(awk -F': *' '/^version:/ {print $2; exit}' .xgc2/product.yml)"
-          for arch in amd64 arm64; do
-            python3 .xgc2/scripts/xgc2_artifact_manifest.py build \
-            --deb-dir debs \
-            --output-dir .ci/build-manifests \
-            --product xgc2-controller \
-            --product-version "$product_version" \
-            --distribution focal \
-            --architecture "$arch" \
-            --source-sha "$GITHUB_SHA" \
-            --ci-run-id "$GITHUB_RUN_ID" \
-            --ci-workflow "$GITHUB_WORKFLOW" \
-            --ci-workflow-ref "$GITHUB_WORKFLOW_REF"
-          done
-
-      - name: Inspect aggregate metapackage
-        run: |
-          dpkg-deb -I debs/*.deb
-          dpkg-deb -c debs/*.deb
-
-      - name: Upload deb artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: xgc2-controller-debs
-          path: |
-            debs/*.deb
-            .ci/build-manifests/*.json
-          retention-days: 14
-          include-hidden-files: true
+          test -e "${GITHUB_WORKSPACE}/.git"
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git -C "${GITHUB_WORKSPACE}" diff --check HEAD
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          product = Path(".xgc2/product.yml").read_text()
+          assert re.search(r"^kind: catalog$", product, re.M), "the controller repository is a catalog"
+          assert "apt:" not in product, "a catalog publishes no package"
+          release_set = Path(".xgc2/release-set.yml").read_text()
+          for name in ("multirotor_controller", "ugv_controller"):
+              assert name + ":" in release_set, name
+          PY
